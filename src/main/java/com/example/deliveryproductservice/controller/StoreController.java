@@ -3,6 +3,7 @@ package com.example.deliveryproductservice.controller;
 
 import com.example.deliveryproductservice.annotation.CurrentUser;
 import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
+import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
 import com.example.deliveryproductservice.service.StoreService;
@@ -73,6 +74,25 @@ public class StoreController {
 
         log.info("✅ Found {} stores for owner {}, hasNext: {}", response.getTotalCount(), ownerId, response.getHasNext());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Получить магазин по ID
+     * GET /api/stores/{id}
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<SingleStoreResponseWrapper> getStoreById(@PathVariable Long id) {
+        log.info("🔍 GET /api/stores/{} - Getting store by ID", id);
+
+        SingleStoreResponseWrapper response = storeService.getStoreById(id);
+
+        if (response.getSuccess()) {
+            log.info("✅ Store found: {}", response.getStore().getName());
+            return ResponseEntity.ok(response);
+        } else {
+            log.warn("❌ Store not found with ID: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
     }
 
 

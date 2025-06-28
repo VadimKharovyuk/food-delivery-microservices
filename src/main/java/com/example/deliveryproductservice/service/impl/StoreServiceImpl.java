@@ -2,6 +2,7 @@
 package com.example.deliveryproductservice.service.impl;
 
 import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
+import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
 import com.example.deliveryproductservice.mapper.StoreMapper;
@@ -22,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -94,6 +97,20 @@ public class StoreServiceImpl implements StoreService {
 
         return StoreResponseWrapper.success(storeDtoSlice);
     }
+@Override
+    @Transactional(readOnly = true)
+    public SingleStoreResponseWrapper getStoreById(Long storeId) {
+        log.debug("Getting store by ID: {}", storeId);
+
+        Optional<Store> storeOptional = storeRepository.findByIdAndIsActiveTrue(storeId);
+
+        if (storeOptional.isPresent()) {
+            StoreResponseDto storeDto = storeMapper.mapToResponseDto(storeOptional.get());
+            return SingleStoreResponseWrapper.success(storeDto);
+        } else {
+            return SingleStoreResponseWrapper.notFound(storeId);
+        }
+    }
 
     // ================================
     // 🛠️ ПРИВАТНЫЕ МЕТОДЫ
@@ -151,41 +168,32 @@ public class StoreServiceImpl implements StoreService {
     /**
      * 🏪 Создание сущности Store
      */
-    private Store buildStoreEntity(CreateStoreDto dto, Long ownerId, Address address, ImageUploadResult imageResult) {
-        log.debug("🔨 Building Store entity for owner: {}", ownerId);
-
+    private Store buildStoreEntity(CreateStoreDto createStoreDto, Long ownerId, Address storeAddress, ImageUploadResult imageResult) {
         Store store = new Store();
-
-        // Основная информация
         store.setOwnerId(ownerId);
-        store.setName(dto.getName());
-        store.setDescription(dto.getDescription());
-        store.setAddress(address);
+        store.setName(createStoreDto.getName());
+        store.setDescription(createStoreDto.getDescription());
+        store.setAddress(storeAddress);
+        store.setPhone(createStoreDto.getPhone());
+        store.setEmail(createStoreDto.getEmail());
+        store.setIsActive(createStoreDto.getIsActive());
+        store.setDeliveryRadius(createStoreDto.getDeliveryRadius());
+        store.setDeliveryFee(createStoreDto.getDeliveryFee());
+        store.setEstimatedDeliveryTime(createStoreDto.getEstimatedDeliveryTime());
 
-        // Контактная информация
-        store.setPhone(dto.getPhone());
-        store.setEmail(dto.getEmail());
-
-        // Настройки доставки
-        store.setDeliveryRadius(dto.getDeliveryRadius());
-        store.setDeliveryFee(dto.getDeliveryFee());
-        store.setEstimatedDeliveryTime(dto.getEstimatedDeliveryTime());
-
-        // Изображение
-        if (imageResult.getImageUrl() != null) {
-            store.setPicUrl(imageResult.getImageUrl());
+        // Генерируем уникальный pic_id
+        if (imageResult != null && imageResult.getImageId() != null) {
             store.setPicId(imageResult.getImageId());
+            store.setPicUrl(imageResult.getImageUrl());
         } else {
-            // Дефолтное изображение для магазинов
-            store.setPicUrl(getDefaultStoreImageUrl());
-            store.setPicId("default_store_image");
+            // Генерируем уникальный ID для дефолтного изображения
+            String uniquePicId = "default_store_" + System.currentTimeMillis() + "_" + ownerId;
+            store.setPicId(uniquePicId);
+            store.setPicUrl("https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
         }
 
-        // Статус и рейтинг
-        store.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
-        // rating остается BigDecimal.ZERO по умолчанию
+        store.setRating(BigDecimal.ZERO);
 
-        log.debug("✅ Store entity built successfully");
         return store;
     }
 
