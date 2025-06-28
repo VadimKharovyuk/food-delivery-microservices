@@ -18,9 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * REST контроллер для управления категориями товаров
- */
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
@@ -267,47 +264,7 @@ public class CategoryRestController {
         return ResponseEntity.ok("Categories service is up and running! 🎉");
     }
 
-    /**
-     * Получить метаинформацию о сервисе категорий
-     * GET /api/categories/info
-     */
-    @GetMapping("/info")
-    public ResponseEntity<CategoryServiceInfo> getServiceInfo() {
-        log.debug("ℹ️ GET /api/categories/info - Getting service info");
 
-        List<CategoryBaseProjection> categories = categoryService.getActiveCategoriesBrief();
 
-        CategoryServiceInfo info = new CategoryServiceInfo(
-                "Categories Service",
-                "1.0.0",
-                categories.size(),
-                "Active"
-        );
 
-        return ResponseEntity.ok(info);
-    }
-
-    // ================================
-    // 📦 ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ
-    // ================================
-
-    /**
-     * Информация о сервисе категорий
-     */
-    @Getter
-    public static class CategoryServiceInfo {
-        // Getters
-        private final String serviceName;
-        private final String version;
-        private final long activeCategoriesCount;
-        private final String status;
-
-        public CategoryServiceInfo(String serviceName, String version, long activeCategoriesCount, String status) {
-            this.serviceName = serviceName;
-            this.version = version;
-            this.activeCategoriesCount = activeCategoriesCount;
-            this.status = status;
-        }
-
-    }
 }
