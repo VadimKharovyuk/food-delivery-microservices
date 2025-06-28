@@ -14,6 +14,7 @@ import java.util.List;
 public class WebConfig implements WebMvcConfigurer {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CurrentUserArgumentResolver currentUserArgumentResolver;
 
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilter() {
@@ -23,5 +24,10 @@ public class WebConfig implements WebMvcConfigurer {
         registration.setOrder(1);
         registration.setName("jwtAuthenticationFilter");
         return registration;
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(currentUserArgumentResolver);
     }
 }

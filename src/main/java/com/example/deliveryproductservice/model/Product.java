@@ -21,8 +21,8 @@ import java.time.LocalDateTime;
 @Builder
 public class Product {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
 
     @ManyToOne(fetch = FetchType.LAZY)

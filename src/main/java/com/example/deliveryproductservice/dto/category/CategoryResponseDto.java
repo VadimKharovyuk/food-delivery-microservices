@@ -1,0 +1,17 @@
+package com.example.deliveryproductservice.dto.category;
+
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+public class CategoryResponseDto {
+    private Long id; // ✅ Изменено на Long
+    private String name;
+    private String description;
+    private String imageUrl;
+    private Boolean isActive;
+    private Integer sortOrder;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}
