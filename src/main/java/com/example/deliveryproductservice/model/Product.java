@@ -24,7 +24,6 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)
     private Store store;
