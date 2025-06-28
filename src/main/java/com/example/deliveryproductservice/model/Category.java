@@ -28,6 +28,9 @@ public class Category {
     @Column(length = 500)
     private String imageUrl;
 
+    @Column(length = 200)
+    private String imageId;
+
 
 
     @Column(nullable = false)
@@ -41,5 +44,7 @@ public class Category {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+
 }
 

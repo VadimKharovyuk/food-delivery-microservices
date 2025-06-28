@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Тестирование категорий - Food Delivery</title>
+</head>
+<body>
+<h1>🧪 Тестирование системы категорий</h1>
+
+<!-- Сообщения об успехе/ошибке -->
+<div id="messages">
+    <!-- Thymeleaf сообщения -->
+    <div th:if="${success}" style="color: green; background: #e8f5e8; padding: 10px; margin: 10px 0; border: 1px solid green;">
+        ✅ <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" style="color: red; background: #ffe8e8; padding: 10px; margin: 10px 0; border: 1px solid red;">
+        ❌ <span th:text="${error}"></span>
+    </div>
+</div>
+
+<!-- Форма создания категории -->
+<h2>➕ Создать новую категорию</h2>
+<form action="/test/categories/create" method="post" enctype="multipart/form-data" style="border: 1px solid #ccc; padding: 20px; margin: 20px 0;">
+
+    <div style="margin-bottom: 10px;">
+        <label for="name"><strong>Название категории:</strong></label><br>
+        <input type="text" id="name" name="name" required maxlength="100" style="width: 300px; padding: 5px;">
+    </div>
+
+    <div style="margin-bottom: 10px;">
+        <label for="description"><strong>Описание:</strong></label><br>
+        <textarea id="description" name="description" maxlength="500" rows="3" style="width: 300px; padding: 5px;"></textarea>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+        <label for="imageFile"><strong>Изображение:</strong></label><br>
+        <input type="file" id="imageFile" name="imageFile" accept="image/*">
+        <small style="color: gray;">Выберите изображение (JPG, PNG, GIF)</small>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+        <label for="sortOrder"><strong>Порядок сортировки:</strong></label><br>
+        <input type="number" id="sortOrder" name="sortOrder" value="0" style="width: 100px; padding: 5px;">
+    </div>
+
+    <div style="margin-bottom: 10px;">
+        <label>
+            <input type="checkbox" name="isActive" value="true" checked>
+            <strong>Активная категория</strong>
+        </label>
+    </div>
+
+    <button type="submit" style="background: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer;">
+        ➕ Создать категорию
+    </button>
+</form>
+
+<!-- Список существующих категорий -->
+<h2>📋 Существующие категории</h2>
+
+<div th:if="${categories != null and not #lists.isEmpty(categories)}">
+    <p><strong>Всего категорий:</strong> <span th:text="${#lists.size(categories)}"></span></p>
+
+    <div style="border: 1px solid #ddd; margin: 20px 0;">
+        <div th:each="category : ${categories}" style="border-bottom: 1px solid #eee; padding: 15px;">
+
+            <div style="display: flex; align-items: flex-start; gap: 20px;">
+
+                <!-- Изображение категории -->
+                <div style="flex-shrink: 0;">
+                    <div th:if="${category.imageUrl != null}">
+                        <img th:src="${category.imageUrl}" th:alt="${category.name}"
+                             style="width: 120px; height: 90px; object-fit: cover; border: 1px solid #ddd;">
+                    </div>
+                    <div th:unless="${category.imageUrl != null}"
+                         style="width: 120px; height: 90px; background: #f5f5f5; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; color: #999;">
+                        Нет изображения
+                    </div>
+                </div>
+
+                <!-- Информация о категории -->
+                <div style="flex-grow: 1;">
+                    <h3 style="margin: 0 0 10px 0; color: #333;">
+                        <span th:text="${category.name}"></span>
+                        <span th:if="${!category.isActive}" style="color: red; font-size: 0.8em;">(НЕАКТИВНАЯ)</span>
+                    </h3>
+
+                    <p style="margin: 5px 0; color: #666;" th:if="${category.description != null and !category.description.isEmpty()}">
+                        <strong>Описание:</strong> <span th:text="${category.description}"></span>
+                    </p>
+
+                    <div style="display: flex; gap: 15px; font-size: 0.9em; color: #888;">
+                        <span><strong>ID:</strong> <span th:text="${category.id}"></span></span>
+                        <span><strong>Порядок:</strong> <span th:text="${category.sortOrder}"></span></span>
+                        <span><strong>Создана:</strong> <span th:text="${#temporals.format(category.createdAt, 'dd.MM.yyyy HH:mm')}"></span></span>
+                    </div>
+                </div>
+
+                <!-- Действия -->
+                <div style="flex-shrink: 0;">
+                    <form th:action="@{/test/categories/delete/{id}(id=${category.id})}" method="post"
+                          style="display: inline;"
+                          onsubmit="return confirm('Вы уверены, что хотите удалить категорию \'' + '[[${category.name}]]' + '\'?')">
+                        <button type="submit" style="background: #f44336; color: white; padding: 5px 10px; border: none; cursor: pointer; font-size: 0.9em;">
+                            🗑️ Удалить
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:if="${categories == null or #lists.isEmpty(categories)}" style="text-align: center; padding: 40px; color: #999;">
+    <h3>📭 Категории не найдены</h3>
+    <p>Создайте первую категорию с помощью формы выше.</p>
+</div>
+
+<!-- Дополнительная информация для разработчика -->
+<hr style="margin: 40px 0;">
+<h2>🔧 Информация для разработчика</h2>
+
+<details style="margin: 20px 0;">
+    <summary style="cursor: pointer; font-weight: bold;">📊 API Endpoints</summary>
+    <div style="background: #f5f5f5; padding: 15px; margin: 10px 0;">
+        <p><strong>GET</strong> <code>/test/categories</code> - Эта страница</p>
+        <p><strong>POST</strong> <code>/test/categories/create</code> - Создание категории</p>
+        <p><strong>POST</strong> <code>/test/categories/delete/{id}</code> - Удаление категории</p>
+        <p><strong>GET</strong> <code>/test/categories/api</code> - JSON список категорий</p>
+    </div>
+</details>
+
+<details style="margin: 20px 0;">
+    <summary style="cursor: pointer; font-weight: bold;">🧪 Тестовые сценарии</summary>
+    <div style="background: #f5f5f5; padding: 15px; margin: 10px 0;">
+        <ol>
+            <li>Создайте категорию без изображения</li>
+            <li>Создайте категорию с изображением</li>
+            <li>Попробуйте загрузить большое изображение</li>
+            <li>Попробуйте загрузить неподдерживаемый формат</li>
+            <li>Создайте несколько категорий и проверьте сортировку</li>
+            <li>Удалите категорию и убедитесь, что изображение удалилось из Cloudinary</li>
+        </ol>
+    </div>
+</details>
+
+<!-- JSON API для AJAX тестирования -->
+<div style="margin: 20px 0;">
+    <button onclick="loadCategoriesJson()" style="background: #2196F3; color: white; padding: 10px 15px; border: none; cursor: pointer;">
+        📊 Загрузить категории через API
+    </button>
+    <div id="jsonResult" style="background: #f9f9f9; padding: 10px; margin: 10px 0; border: 1px solid #ddd; display: none;">
+        <pre id="jsonContent"></pre>
+    </div>
+</div>
+
+<script>
+    function loadCategoriesJson() {
+        fetch('/test/categories/api')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('jsonContent').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('jsonResult').style.display = 'block';
+            })
+            .catch(error => {
+                document.getElementById('jsonContent').textContent = 'Ошибка: ' + error.message;
+                document.getElementById('jsonResult').style.display = 'block';
+            });
+    }
+
+    // Автоматически скрывать сообщения через 5 секунд
+    setTimeout(() => {
+        const messages = document.getElementById('messages');
+        if (messages) {
+            messages.style.opacity = '0.5';
+        }
+    }, 5000);
+</script>
+
+<footer style="margin-top: 50px; padding: 20px; background: #f5f5f5; text-align: center; color: #666;">
+    <p>🧪 <strong>Тестовая страница</strong> - Food Delivery Product Service</p>
+    <p>Для production использования используйте REST API endpoints</p>
+</footer>
+
+</body>
+</html>

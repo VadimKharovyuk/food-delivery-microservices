@@ -3,6 +3,7 @@ package com.example.deliveryproductservice.dto.category;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class CreateCategoryDto {
@@ -14,8 +15,8 @@ public class CreateCategoryDto {
     @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
 
-    @Size(max = 500, message = "Image URL must not exceed 500 characters")
-    private String imageUrl;
+    private MultipartFile imageFile;
+
 
     private Boolean isActive = true;
 

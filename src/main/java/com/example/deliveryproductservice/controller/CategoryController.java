@@ -23,16 +23,6 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    @PostConstruct
-    public void init() {
-        log.info("🚀 CategoryController initialized successfully");
-    }
-
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        log.info("🧪 CategoryController test endpoint called");
-        return ResponseEntity.ok("CategoryController is working!");
-    }
 
     @PostMapping
     public ResponseEntity<CategoryResponseDto> createCategory(
