@@ -1,0 +1,38 @@
+package com.example.deliveryproductservice.mapper;
+
+import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
+import com.example.deliveryproductservice.model.Store;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+@Slf4j
+@Component
+public class StoreMapper {
+    /**
+     * 📤 Store Entity → StoreResponseDto
+     */
+    public StoreResponseDto mapToResponseDto(Store store) {
+        if (store == null) {
+            return null;
+        }
+
+        StoreResponseDto dto = new StoreResponseDto();
+        dto.setId(store.getId());
+        dto.setOwnerId(store.getOwnerId());
+        dto.setName(store.getName());
+        dto.setDescription(store.getDescription());
+        dto.setAddress(store.getAddress());
+        dto.setPhone(store.getPhone());
+        dto.setEmail(store.getEmail());
+        dto.setIsActive(store.getIsActive());
+        dto.setRating(store.getRating());
+        dto.setDeliveryRadius(store.getDeliveryRadius());
+        dto.setDeliveryFee(store.getDeliveryFee());
+        dto.setEstimatedDeliveryTime(store.getEstimatedDeliveryTime());
+        dto.setPicUrl(store.getPicUrl());
+        dto.setCreatedAt(store.getCreatedAt());
+        dto.setUpdatedAt(store.getUpdatedAt());
+
+        log.debug("Mapped Store {} to ResponseDto", store.getId());
+        return dto;
+    }
+}
