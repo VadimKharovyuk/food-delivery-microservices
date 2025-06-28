@@ -3,6 +3,7 @@ package com.example.deliveryproductservice.service.impl;
 
 import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
+import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
 import com.example.deliveryproductservice.mapper.StoreMapper;
 import com.example.deliveryproductservice.model.Address;
 import com.example.deliveryproductservice.model.Store;
@@ -13,6 +14,9 @@ import com.example.deliveryproductservice.service.StoreService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -62,6 +66,33 @@ public class StoreServiceImpl implements StoreService {
             log.error("❌ Error creating store for owner {}: {}", ownerId, e.getMessage(), e);
             throw new RuntimeException("Failed to create store: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StoreResponseWrapper getActiveStores(int page, int size) {
+        log.debug("Getting active stores with pagination: page={}, size={}", page, size);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Slice<Store> storeSlice = storeRepository.findByIsActiveTrueOrderByCreatedAtDesc(pageable);
+
+        Slice<StoreResponseDto> storeDtoSlice = storeSlice.map(storeMapper::mapToResponseDto);
+
+        return StoreResponseWrapper.success(storeDtoSlice);
+    }
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public StoreResponseWrapper getStoresByOwner(Long ownerId, int page, int size) {
+        log.debug("Getting stores for owner {} with pagination: page={}, size={}", ownerId, page, size);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Slice<Store> storeSlice = storeRepository.findByOwnerIdAndIsActiveTrueOrderByCreatedAtDesc(ownerId, pageable);
+
+        Slice<StoreResponseDto> storeDtoSlice = storeSlice.map(storeMapper::mapToResponseDto);
+
+        return StoreResponseWrapper.success(storeDtoSlice);
     }
 
     // ================================
@@ -166,15 +197,7 @@ public class StoreServiceImpl implements StoreService {
         return "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image";
     }
 
-    /**
-     * 🔍 Валидация уникальности названия магазина
-     */
-    private void validateStoreUniqueness(String storeName, Long ownerId) {
-        boolean exists = storeRepository.existsByNameAndOwnerIdAndIsActiveTrue(storeName, ownerId);
-        if (exists) {
-            throw new RuntimeException("Store with name '" + storeName + "' already exists for this owner");
-        }
-    }
+
 
     /**
      * 📊 Логирование статистики создания

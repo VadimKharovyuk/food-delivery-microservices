@@ -25,15 +25,5 @@ public class StoreResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Вычисляемые поля
-    public String getDeliveryInfo() {
-        return String.format("$%.2f • %d-%d min",
-                deliveryFee,
-                estimatedDeliveryTime - 5,
-                estimatedDeliveryTime + 5);
-    }
 
-    public String getRatingDisplay() {
-        return rating != null ? String.format("⭐ %.1f", rating) : "⭐ New";
-    }
 }

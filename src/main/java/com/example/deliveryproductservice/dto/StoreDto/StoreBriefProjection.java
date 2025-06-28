@@ -18,15 +18,4 @@ public interface StoreBriefProjection {
     BigDecimal getAddressLatitude();
     BigDecimal getAddressLongitude();
 
-    // Вычисляемые поля
-    default String getDeliveryInfo() {
-        return String.format("$%.2f • %d-%d min",
-                getDeliveryFee(),
-                getEstimatedDeliveryTime() - 5,
-                getEstimatedDeliveryTime() + 5);
-    }
-
-    default String getRatingDisplay() {
-        return getRating() != null ? String.format("⭐ %.1f", getRating()) : "⭐ New";
-    }
 }
