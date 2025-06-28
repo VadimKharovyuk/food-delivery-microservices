@@ -32,7 +32,7 @@ public class CategoryController {
 
         log.info("🎯 CategoryController.createCategory called");
 
-        // Дебаг всех заголовков
+
         String authHeader = request.getHeader("Authorization");
         log.info("🔍 Authorization header: {}", authHeader != null ? "Bearer ***" : "null");
 
