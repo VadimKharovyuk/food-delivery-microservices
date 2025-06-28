@@ -1,8 +1,6 @@
 package com.example.deliveryproductservice.service;
 
-import com.example.deliveryproductservice.dto.category.CategoryBaseProjection;
-import com.example.deliveryproductservice.dto.category.CategoryResponseDto;
-import com.example.deliveryproductservice.dto.category.CreateCategoryDto;
+import com.example.deliveryproductservice.dto.category.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +13,7 @@ public interface CategoryService {
 
 
     CategoryResponseDto updateCategory(Long id, CreateCategoryDto dto, Long updatedBy);
-
+    CategoryStatsResponseWrapper getCategoryStats();
 
     void deleteCategory(Long id, Long deletedBy);
 
@@ -23,18 +21,8 @@ public interface CategoryService {
     // 🔍 ПОЛУЧЕНИЕ ПОЛНОЙ ИНФОРМАЦИИ
     // ================================
 
-    /**
-     * 📋 Получить все активные категории (полная информация)
-     *
-     * Возвращает список всех активных категорий с полной информацией включая:
-     * - Все поля категории
-     * - URL изображения
-     * - Даты создания и обновления
-     * Отсортированы по sortOrder, затем по названию.
-     *
-     * @return список активных категорий с полной информацией
-     */
-    List<CategoryResponseDto> getAllActiveCategories();
+    CategoryBriefResponseWrapper getActiveCategoriesBrief() ;
+    CategoriesResponseWrapper getAllActiveCategories();
 
     /**
      * 🔍 Получить категорию по ID (полная информация)
@@ -51,20 +39,6 @@ public interface CategoryService {
     // ================================
     // 📊 ЛЕГКОВЕСНЫЕ ПРОЕКЦИИ
     // ================================
-
-    /**
-     * 📊 Получить краткий список активных категорий
-     *
-     * Возвращает только основные поля (ID, название, статус, порядок) для активных категорий.
-     * Идеально подходит для:
-     * - Dropdown меню
-     * - Селекторы
-     * - Быстрые списки
-     * - Мобильные приложения
-     *
-     * @return краткий список активных категорий
-     */
-    List<CategoryBaseProjection> getActiveCategoriesBrief();
 
     /**
      * 🔍 Получить краткую информацию о категории по ID

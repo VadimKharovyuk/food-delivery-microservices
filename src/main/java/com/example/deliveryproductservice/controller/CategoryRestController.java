@@ -1,9 +1,7 @@
 
 package com.example.deliveryproductservice.controller;
 import com.example.deliveryproductservice.annotation.CurrentUser;
-import com.example.deliveryproductservice.dto.category.CategoryBaseProjection;
-import com.example.deliveryproductservice.dto.category.CategoryResponseDto;
-import com.example.deliveryproductservice.dto.category.CreateCategoryDto;
+import com.example.deliveryproductservice.dto.category.*;
 import com.example.deliveryproductservice.service.CategoryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -30,13 +28,13 @@ public class CategoryRestController {
      * GET /api/categories
      */
     @GetMapping
-    public ResponseEntity<List<CategoryResponseDto>> getAllActiveCategories() {
+    public ResponseEntity<CategoriesResponseWrapper> getAllActiveCategories() {
         log.info("📋 GET /api/categories - Getting all active categories");
 
-        List<CategoryResponseDto> categories = categoryService.getAllActiveCategories();
+        CategoriesResponseWrapper response = categoryService.getAllActiveCategories();
 
-        log.info("✅ Found {} active categories", categories.size());
-        return ResponseEntity.ok(categories);
+        log.info("✅ Found {} active categories", response.getTotalCount());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -44,35 +42,15 @@ public class CategoryRestController {
      * GET /api/categories/brief
      */
     @GetMapping("/brief")
-    public ResponseEntity<List<CategoryBaseProjection>> getActiveCategoriesBrief() {
+    public ResponseEntity<CategoryBriefResponseWrapper> getActiveCategoriesBrief() {
         log.info("📊 GET /api/categories/brief - Getting brief categories");
 
-        List<CategoryBaseProjection> categories = categoryService.getActiveCategoriesBrief();
+        CategoryBriefResponseWrapper response = categoryService.getActiveCategoriesBrief();
 
-        log.info("✅ Found {} brief categories", categories.size());
-        return ResponseEntity.ok(categories);
+        log.info("✅ Found {} brief categories", response.getTotalCount());
+        return ResponseEntity.ok(response);
     }
 
-    /**
-     * Получить краткую информацию о категориях по списку ID
-     * POST /api/categories/brief/by-ids
-     */
-    @PostMapping("/brief/by-ids")
-    public ResponseEntity<List<CategoryBaseProjection>> getCategoriesBriefByIds(
-            @RequestBody List<Long> ids) {
-
-        log.info("🔍 POST /api/categories/brief/by-ids - Getting brief for IDs: {}", ids);
-
-        if (ids == null || ids.isEmpty()) {
-            log.warn("❌ Empty IDs list provided");
-            return ResponseEntity.badRequest().build();
-        }
-
-        List<CategoryBaseProjection> categories = categoryService.getCategoriesBriefByIds(ids);
-
-        log.info("✅ Found {} categories for provided IDs", categories.size());
-        return ResponseEntity.ok(categories);
-    }
 
     // ================================
     // 🔍 ПОЛУЧЕНИЕ ОТДЕЛЬНЫХ КАТЕГОРИЙ
@@ -247,8 +225,8 @@ public class CategoryRestController {
     public ResponseEntity<Long> getActiveCategoriesCount() {
         log.info("📊 GET /api/categories/count - Getting categories count");
 
-        List<CategoryBaseProjection> categories = categoryService.getActiveCategoriesBrief();
-        long count = categories.size();
+        CategoryBriefResponseWrapper response = categoryService.getActiveCategoriesBrief();
+        long count = response.getTotalCount();
 
         log.info("✅ Active categories count: {}", count);
         return ResponseEntity.ok(count);

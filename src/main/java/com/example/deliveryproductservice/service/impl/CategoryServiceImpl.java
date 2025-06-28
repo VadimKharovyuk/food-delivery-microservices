@@ -1,7 +1,5 @@
 package com.example.deliveryproductservice.service.impl;
-import com.example.deliveryproductservice.dto.category.CategoryBaseProjection;
-import com.example.deliveryproductservice.dto.category.CategoryResponseDto;
-import com.example.deliveryproductservice.dto.category.CreateCategoryDto;
+import com.example.deliveryproductservice.dto.category.*;
 import com.example.deliveryproductservice.mapper.CategoryMapper;
 import com.example.deliveryproductservice.model.Category;
 import com.example.deliveryproductservice.repository.CategoryRepository;
@@ -29,28 +27,26 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMapper categoryMapper;
     private final StorageService storageService;
 
-    // ================================
-    // 📊 МЕТОДЫ С ПРОЕКЦИЯМИ (ОБНОВЛЕНЫ)
-    // ================================
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryBaseProjection> getActiveCategoriesBrief() {
+    public CategoryBriefResponseWrapper getActiveCategoriesBrief() {
         log.debug("Getting active categories brief");
-        return categoryRepository.findActiveCategoriesProjection(); // ИСПРАВЛЕНО
+        List<CategoryBaseProjection> categories = categoryRepository.findActiveCategoriesProjection();
+        return CategoryBriefResponseWrapper.success(categories);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<CategoryBaseProjection> getCategoryBrief(Long id) {
         log.debug("Getting category brief for ID: {}", id);
-        return categoryRepository.findCategoryProjectionById(id); // ИСПРАВЛЕНО
+        return categoryRepository.findCategoryProjectionById(id);
     }
 
     @Transactional(readOnly = true)
     public List<CategoryBaseProjection> getCategoriesBriefByIds(List<Long> ids) {
         log.debug("Getting categories brief by IDs: {}", ids);
-        return categoryRepository.findCategoriesProjectionByIds(ids); // ИСПРАВЛЕНО
+        return categoryRepository.findCategoriesProjectionByIds(ids);
     }
 
     /**
@@ -71,23 +67,17 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryRepository.searchActiveCategoriesProjection(name);
     }
 
-    /**
-     * 🔢 Категории по диапазону сортировки
-     */
-    @Transactional(readOnly = true)
-    public List<CategoryBaseProjection> getCategoriesBriefBySortRange(Integer minOrder, Integer maxOrder) {
-        log.debug("Getting categories brief by sort order range: {} - {}", minOrder, maxOrder);
-        return categoryRepository.findCategoriesProjectionBySortOrderRange(minOrder, maxOrder);
-    }
 
     /**
      * 📊 Статистика категорий
      */
     @Transactional(readOnly = true)
-    public List<CategoryRepository.CategoryStatsProjection> getCategoryStats() {
+    public CategoryStatsResponseWrapper getCategoryStats() {
         log.debug("Getting category statistics");
-        return categoryRepository.getCategoryStatistics();
+        List<CategoryRepository.CategoryStatsProjection> stats = categoryRepository.getCategoryStatistics();
+        return CategoryStatsResponseWrapper.success(stats);
     }
+
 
     /**
      * 🔢 Количество активных категорий
@@ -109,14 +99,19 @@ public class CategoryServiceImpl implements CategoryService {
     // 🔍 МЕТОДЫ С ПОЛНОЙ ИНФОРМАЦИЕЙ (БЕЗ ИЗМЕНЕНИЙ)
     // ================================
 
+
+
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponseDto> getAllActiveCategories() {
-        return categoryRepository.findByIsActiveTrueOrderBySortOrderAsc()
+    public CategoriesResponseWrapper getAllActiveCategories() {
+        List<CategoryResponseDto> categories = categoryRepository.findByIsActiveTrueOrderBySortOrderAsc()
                 .stream()
                 .map(categoryMapper::mapToResponseDto)
                 .collect(Collectors.toList());
+
+        return CategoriesResponseWrapper.success(categories);
     }
+
 
     @Override
     @Transactional(readOnly = true)
