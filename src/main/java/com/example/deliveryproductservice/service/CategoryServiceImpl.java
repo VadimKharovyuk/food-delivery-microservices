@@ -31,25 +31,19 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponseDto createCategory(CreateCategoryDto dto, Long createdBy) {
         log.info("Creating new category: {} by user: {}", dto.getName(), createdBy);
 
-        // 📸 Загружаем изображение (если предоставлено)
         ImageUploadResult imageResult = handleImageUpload(dto.getImageFile(), "categories");
 
-        // 🔄 Преобразуем DTO в Entity с помощью маппера
         Category category = categoryMapper.mapToEntity(dto, imageResult.getImageUrl());
 
-        // Сохраняем imageId для возможности удаления в будущем
         if (imageResult.getImageId() != null) {
             category.setImageId(imageResult.getImageId());
         }
-
-        // 💾 Сохраняем в БД
         Category savedCategory = categoryRepository.save(category);
 
         log.info("✅ Category created with ID: {} and image: {}",
                 savedCategory.getId(),
                 imageResult.getImageUrl() != null ? "Yes" : "No");
 
-        // 📤 Возвращаем DTO
         return categoryMapper.mapToResponseDto(savedCategory);
     }
 
@@ -67,10 +61,8 @@ public class CategoryServiceImpl implements CategoryService {
                 "categories"
         );
 
-        // 🔄 Обновляем entity
         categoryMapper.updateEntityFromDto(category, dto, imageResult.getImageUrl());
 
-        // Обновляем imageId
         if (imageResult.getImageId() != null) {
             category.setImageId(imageResult.getImageId());
         }
@@ -102,11 +94,8 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(Long id, Long deletedBy) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
-
-        // 🗑️ Удаляем изображение
         handleImageDeletion(category.getImageId());
 
-        // Мягкое удаление - деактивация
         category.setIsActive(false);
         categoryRepository.save(category);
 

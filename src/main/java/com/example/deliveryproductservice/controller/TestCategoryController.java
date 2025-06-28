@@ -41,9 +41,7 @@ public class TestCategoryController {
         return "test-categories";
     }
 
-    /**
-     * ➕ Создание новой категории
-     */
+
     @PostMapping("/create")
     public String createCategory(
             @RequestParam("name") String name,
@@ -77,13 +75,11 @@ public class TestCategoryController {
         return "redirect:/test/categories";
     }
 
-    /**
-     * 🗑️ Удаление категории
-     */
+
     @PostMapping("/delete/{id}")
     public String deleteCategory(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
-            categoryService.deleteCategory(id, 1L); // Фиксированный userId для теста
+            categoryService.deleteCategory(id, 1L);
 
             log.info("🗑️ Category {} deleted via test form", id);
             redirectAttributes.addFlashAttribute("success", "Категория удалена!");
