@@ -2,19 +2,22 @@ package com.example.deliveryproductservice.model;
 
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+// 10. Category Entity
 @Entity
 @Table(name = "categories")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -26,18 +29,17 @@ class Category {
     @Column(length = 500)
     private String description;
 
+    @Column(length = 500)
+    private String imageUrl;
 
-    @Column(nullable = false)
-    private String picUrl;
-
-    @Column(unique = true, nullable = false)
-    private String picId;
-
+    @Column(name = "parent_category_id")
+    private String parentCategoryId;
 
     @Column(nullable = false)
     private Boolean isActive = true;
 
-
+    @Column(nullable = false)
+    private Integer sortOrder = 0;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-class Product {
+public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
@@ -60,7 +60,6 @@ class Product {
 
     @Column(precision = 3, scale = 2)
     private BigDecimal rating = BigDecimal.ZERO;
-
 
 
     @CreationTimestamp
