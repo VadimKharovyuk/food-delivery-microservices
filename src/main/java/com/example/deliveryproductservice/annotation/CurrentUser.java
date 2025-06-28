@@ -1,4 +1,4 @@
-package com.example.deliveryproductservice.config;
+package com.example.deliveryproductservice.annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

@@ -1,13 +1,12 @@
-package com.example.deliveryproductservice.Utility;
+package com.example.deliveryproductservice.config;
 
-import com.example.deliveryproductservice.config.JwtUtil;
-import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletRequestWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import java.io.IOException;
 
 @Component

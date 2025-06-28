@@ -1,5 +1,4 @@
-package com.example.deliveryproductservice.Utility;
-
+package com.example.deliveryproductservice.config;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
