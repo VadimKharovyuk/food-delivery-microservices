@@ -64,8 +64,11 @@ public class Store {
     @Column(unique = true, nullable = false)
     private String picId;
 
-    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id")
     private List<Product> products;
+
 
     @CreationTimestamp
     private LocalDateTime createdAt;
