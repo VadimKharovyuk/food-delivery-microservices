@@ -1,5 +1,6 @@
 package com.example.deliveryproductservice.service;
 
+import com.example.deliveryproductservice.dto.category.CategoryBaseProjection;
 import com.example.deliveryproductservice.dto.category.CategoryResponseDto;
 import com.example.deliveryproductservice.dto.category.CreateCategoryDto;
 import com.example.deliveryproductservice.mapper.CategoryMapper;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,6 +73,26 @@ public class CategoryServiceImpl implements CategoryService {
 
         log.info("✅ Category updated: {}", savedCategory.getId());
         return categoryMapper.mapToResponseDto(savedCategory);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryBaseProjection> getActiveCategoriesBrief() {
+        log.debug("Getting active categories brief");
+        return categoryRepository.findByIsActiveTrueOrderBySortOrderAscBy();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryBaseProjection> getCategoriesBriefByIds(List<Long> ids) {
+        log.debug("Getting categories brief by IDs: {}", ids);
+        return categoryRepository.findCategoriesBaseByIds(ids);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CategoryBaseProjection> getCategoryBrief(Long id) {
+        log.debug("Getting category brief for ID: {}", id);
+        return categoryRepository.findProjectionById(id);
     }
 
     @Override
