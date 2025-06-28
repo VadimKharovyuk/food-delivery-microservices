@@ -20,8 +20,8 @@ import java.util.List;
 
 public class Store {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "owner_id", nullable = false)
     private Long ownerId;
