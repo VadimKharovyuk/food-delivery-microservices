@@ -29,12 +29,10 @@ public class CategoryRestController {
      */
     @GetMapping
     public ResponseEntity<ListApiResponse<CategoryResponseDto>> getAllActiveCategories() {
-        log.info("📋 GET /api/categories - Getting all active categories");
 
         ListApiResponse<CategoryResponseDto> response = categoryService.getAllActiveCategories();
 
         if (response.isSuccess()) {
-            log.info("✅ Found {} active categories", response.getTotalCount());
             return ResponseEntity.ok(response);
         } else {
             log.error("❌ Error getting active categories: {}", response.getMessage());
@@ -51,20 +49,15 @@ public class CategoryRestController {
     public ResponseEntity<ListApiResponse<CategoryResponseDto>> getAllCategories(
             HttpServletRequest request) {
 
-        log.info("📋 GET /api/categories/all - Getting all categories");
-
-        // Проверяем авторизацию
         String userRole = request.getHeader("X-User-Role");
         if (!"ROLE_ADMIN".equals(userRole)) {
             log.warn("❌ Access denied for role: {}", userRole);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ListApiResponse.error("Доступ запрещен"));
         }
-
         ListApiResponse<CategoryResponseDto> response = categoryService.getAllCategories();
 
         if (response.isSuccess()) {
-            log.info("✅ Found {} total categories", response.getTotalCount());
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -78,18 +71,13 @@ public class CategoryRestController {
     @GetMapping("/search")
     public ResponseEntity<ListApiResponse<CategoryResponseDto>> searchCategories(
             @RequestParam String name) {
-
-        log.info("🔍 GET /api/categories/search - Searching categories by name: {}", name);
-
         if (name == null || name.trim().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(ListApiResponse.error("Параметр поиска не может быть пустым"));
         }
-
         ListApiResponse<CategoryResponseDto> response = categoryService.searchCategories(name.trim());
 
         if (response.isSuccess()) {
-            log.info("✅ Found {} categories for search: {}", response.getTotalCount(), name);
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -106,15 +94,18 @@ public class CategoryRestController {
      */
     @GetMapping("/brief")
     public ResponseEntity<ListApiResponse<CategoryBaseProjection>> getActiveCategoriesBrief() {
-        log.info("📊 GET /api/categories/brief - Getting brief categories");
+        try {
+            ListApiResponse<CategoryBaseProjection> response = categoryService.getActiveCategoriesBrief();
 
-        ListApiResponse<CategoryBaseProjection> response = categoryService.getActiveCategoriesBrief();
-
-        if (response.isSuccess()) {
-            log.info("✅ Found {} brief categories", response.getTotalCount());
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            if (response.isSuccess()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при получении списка категорий", e);
+            // Возвращаем ошибку
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -126,16 +117,11 @@ public class CategoryRestController {
     @GetMapping("/brief/all")
     public ResponseEntity<ListApiResponse<CategoryBaseProjection>> getAllCategoriesBrief(
             HttpServletRequest request) {
-
-        log.info("📊 GET /api/categories/brief/all - Getting all brief categories");
-
-        // Проверяем авторизацию
         String userRole = request.getHeader("X-User-Role");
         if (!"ROLE_ADMIN".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ListApiResponse.error("Доступ запрещен"));
         }
-
         ListApiResponse<CategoryBaseProjection> response = categoryService.getAllCategoriesBrief();
 
         if (response.isSuccess()) {
