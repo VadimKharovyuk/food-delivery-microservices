@@ -168,6 +168,7 @@ public class StoreController {
 
 
 
+
     /**
      * 🏪 Создать новый магазин (JSON версия без изображения)
      * POST /api/stores/simple

@@ -46,14 +46,16 @@ public class Product {
     @Column(nullable = false)
     private String picUrl;
 
+    @Column(nullable = false)
+    private Boolean isPopular = false;
+
     @Column(unique = true, nullable = false)
     private String picId;
 
     @Column(nullable = false)
     private Boolean isAvailable = true;
 
-    @Column(nullable = false)
-    private Boolean isPopular = false;
+
 
     @Column(precision = 3, scale = 2)
     private BigDecimal rating = BigDecimal.ZERO;
