@@ -1,7 +1,6 @@
 package com.example.deliveryproductservice.config;
 
 import com.example.deliveryproductservice.annotation.CurrentUser;
-import com.example.deliveryproductservice.annotation.CurrentUserRole;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -20,11 +19,6 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
             return true;
         }
 
-        if (parameter.hasParameterAnnotation(CurrentUserRole.class) &&
-                parameter.getParameterType().equals(String.class)) {
-            return true;
-        }
-
         return false;
     }
 
@@ -34,16 +28,12 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
                                   NativeWebRequest webRequest,
                                   WebDataBinderFactory binderFactory) {
 
-        // Если это @CurrentUser - возвращаем ID
+
         if (parameter.hasParameterAnnotation(CurrentUser.class)) {
             String userIdHeader = webRequest.getHeader("X-User-Id");
             return userIdHeader != null ? Long.parseLong(userIdHeader) : null;
         }
 
-        // Если это @CurrentUserRole - возвращаем роль
-        if (parameter.hasParameterAnnotation(CurrentUserRole.class)) {
-            return webRequest.getHeader("X-User-Role");
-        }
 
         return null;
     }

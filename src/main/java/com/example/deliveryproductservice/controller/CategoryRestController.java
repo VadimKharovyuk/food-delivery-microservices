@@ -1,5 +1,4 @@
 package com.example.deliveryproductservice.controller;
-import com.example.deliveryproductservice.annotation.CurrentUser;
 import com.example.deliveryproductservice.dto.category.*;
 import com.example.deliveryproductservice.repository.CategoryRepository;
 import com.example.deliveryproductservice.service.CategoryService;
@@ -226,9 +225,10 @@ public class CategoryRestController {
         }
     }
 
-    // ================================
-    // ✏️ СОЗДАНИЕ И ОБНОВЛЕНИЕ КАТЕГОРИЙ (ADMIN ONLY)
-    // ================================
+
+// ================================
+// ✏️ СОЗДАНИЕ И ОБНОВЛЕНИЕ КАТЕГОРИЙ (ADMIN ONLY)
+// ================================
 
     /**
      * Создать новую категорию (с возможностью загрузки изображения)
@@ -238,7 +238,7 @@ public class CategoryRestController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<CategoryResponseDto>> createCategory(
             @Valid @ModelAttribute CreateCategoryDto createCategoryDto,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
         log.info("➕ POST /api/categories - Creating new category: {}", createCategoryDto.getName());
@@ -277,7 +277,7 @@ public class CategoryRestController {
     public ResponseEntity<ApiResponse<CategoryResponseDto>> updateCategory(
             @PathVariable Long id,
             @Valid @ModelAttribute CreateCategoryDto updateCategoryDto,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
         log.info("✏️ PUT /api/categories/{} - Updating category", id);
@@ -308,15 +308,10 @@ public class CategoryRestController {
     // 🗑️ УДАЛЕНИЕ КАТЕГОРИЙ (ADMIN ONLY)
     // ================================
 
-    /**
-     * Удалить категорию (мягкое удаление - деактивация)
-     * DELETE /api/categories/{id}
-     * Требует: роль ADMIN
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(
             @PathVariable Long id,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
         log.info("🗑️ DELETE /api/categories/{} - Deleting category", id);
@@ -343,18 +338,14 @@ public class CategoryRestController {
         }
     }
 
-    /**
-     * Переключить статус категории (активна/неактивна)
-     * PATCH /api/categories/{id}/toggle
-     * Требует: роль ADMIN
-     */
+
     @PatchMapping("/{id}/toggle")
     public ResponseEntity<ApiResponse<CategoryResponseDto>> toggleCategoryStatus(
             @PathVariable Long id,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
-        log.info("🔄 PATCH /api/categories/{}/toggle - Toggling category status", id);
+        log.info("🔄 PATCH /api/categories/{}/toggle - Toggling category status by user: {}", id, userId);
 
         // Проверяем авторизацию
         String userRole = request.getHeader("X-User-Role");
@@ -365,15 +356,24 @@ public class CategoryRestController {
                     .body(ApiResponse.error("Доступ запрещен"));
         }
 
-        ApiResponse<CategoryResponseDto> response = categoryService.toggleCategoryStatus(id, userId);
+        try {
+            ApiResponse<CategoryResponseDto> response = categoryService.toggleCategoryStatus(id, userId);
 
-        if (response.isSuccess()) {
-            log.info("✅ Category status toggled: {}", response.getMessage());
-            return ResponseEntity.ok(response);
-        } else if (!response.isSuccess() && response.getMessage().contains("не найдена")) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            if (response.isSuccess()) {
+                log.info("✅ Category status toggled for ID: {} by user: {}", id, userId);
+                return ResponseEntity.ok(response);
+            } else if (response.getMessage() != null && response.getMessage().contains("не найдена")) {
+                log.warn("❌ Category ID: {} not found", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            } else {
+                log.warn("❌ Failed to toggle category status: {}", response.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+
+        } catch (Exception e) {
+            log.error("💥 Error toggling category status for ID: {} by user: {}", id, userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Внутренняя ошибка при изменении статуса категории"));
         }
     }
 
