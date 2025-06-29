@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -103,6 +104,25 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     @Query("SELECT COUNT(c) > 0 FROM Category c WHERE LOWER(c.name) = LOWER(:name) AND c.isActive = true")
     boolean existsActiveCategoryByName(@Param("name") String name);
 
+
+    /**
+     * Найти все категории (включая неактивные) с полными данными, отсортированные по sortOrder
+     */
+    List<Category> findAllByOrderBySortOrderAsc();
+
+    // Альтернативные варианты сортировки:
+
+    /**
+     * Найти все категории, отсортированные по дате создания (новые первые)
+     */
+    List<Category> findAllByOrderByCreatedAtDesc();
+
+    /**
+     * Найти все категории, отсортированные по названию
+     */
+    List<Category> findAllByOrderByNameAsc();
+
+
     // ================================
     // 📦 ВЛОЖЕННЫЕ ИНТЕРФЕЙСЫ ПРОЕКЦИЙ
     // ================================
@@ -119,4 +139,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
             return getIsActive() ? "Активные" : "Неактивные";
         }
     }
+
+
 }

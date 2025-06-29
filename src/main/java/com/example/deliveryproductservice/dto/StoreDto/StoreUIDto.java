@@ -18,13 +18,4 @@ public class StoreUIDto {
     private BigDecimal rating;
     private Integer estimatedDeliveryTime;
 
-    // Конструктор для преобразования из StoreResponseDto
-    public static StoreUIDto fromStoreResponseDto(StoreResponseDto storeDto) {
-        return StoreUIDto.builder()
-                .name(storeDto.getName())
-                .picUrl(storeDto.getPicUrl())
-                .rating(storeDto.getRating())
-                .estimatedDeliveryTime(storeDto.getEstimatedDeliveryTime())
-                .build();
-    }
 }

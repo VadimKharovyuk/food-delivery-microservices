@@ -2,8 +2,6 @@ package com.example.deliveryproductservice.service;
 
 import com.example.deliveryproductservice.dto.StoreDto.*;
 
-import java.util.List;
-
 
 public interface StoreService {
     StoreResponseDto createStore(CreateStoreDto createStoreDto, Long ownerId);

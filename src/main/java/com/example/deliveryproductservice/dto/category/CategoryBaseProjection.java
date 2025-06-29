@@ -7,5 +7,4 @@ public interface CategoryBaseProjection {
 
     Boolean getIsActive();
 
-    Integer getSortOrder();
 }

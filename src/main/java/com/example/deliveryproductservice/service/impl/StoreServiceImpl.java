@@ -93,7 +93,6 @@ public class StoreServiceImpl implements StoreService {
         try {
             Pageable pageable = PageRequest.of(0, UI_STORE_LIMIT);
 
-            // Используем проекцию - достаем только нужные поля
             Slice<StoreUIProjection> storeProjections =
                     storeRepository.findByIsActiveTrueOrderByRatingDescCreatedAtDesc(pageable);
 
