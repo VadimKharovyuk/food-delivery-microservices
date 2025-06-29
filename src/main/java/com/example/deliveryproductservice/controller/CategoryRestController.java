@@ -1,5 +1,4 @@
 package com.example.deliveryproductservice.controller;
-import com.example.deliveryproductservice.annotation.CurrentUser;
 import com.example.deliveryproductservice.dto.category.*;
 import com.example.deliveryproductservice.repository.CategoryRepository;
 import com.example.deliveryproductservice.service.CategoryService;
@@ -20,6 +19,7 @@ import java.util.List;
 @Slf4j
 public class CategoryRestController {
 
+
     private final CategoryService categoryService;
 
     /**
@@ -28,12 +28,10 @@ public class CategoryRestController {
      */
     @GetMapping
     public ResponseEntity<ListApiResponse<CategoryResponseDto>> getAllActiveCategories() {
-        log.info("📋 GET /api/categories - Getting all active categories");
 
         ListApiResponse<CategoryResponseDto> response = categoryService.getAllActiveCategories();
 
         if (response.isSuccess()) {
-            log.info("✅ Found {} active categories", response.getTotalCount());
             return ResponseEntity.ok(response);
         } else {
             log.error("❌ Error getting active categories: {}", response.getMessage());
@@ -50,20 +48,15 @@ public class CategoryRestController {
     public ResponseEntity<ListApiResponse<CategoryResponseDto>> getAllCategories(
             HttpServletRequest request) {
 
-        log.info("📋 GET /api/categories/all - Getting all categories");
-
-        // Проверяем авторизацию
         String userRole = request.getHeader("X-User-Role");
         if (!"ROLE_ADMIN".equals(userRole)) {
             log.warn("❌ Access denied for role: {}", userRole);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ListApiResponse.error("Доступ запрещен"));
         }
-
         ListApiResponse<CategoryResponseDto> response = categoryService.getAllCategories();
 
         if (response.isSuccess()) {
-            log.info("✅ Found {} total categories", response.getTotalCount());
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -77,18 +70,13 @@ public class CategoryRestController {
     @GetMapping("/search")
     public ResponseEntity<ListApiResponse<CategoryResponseDto>> searchCategories(
             @RequestParam String name) {
-
-        log.info("🔍 GET /api/categories/search - Searching categories by name: {}", name);
-
         if (name == null || name.trim().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(ListApiResponse.error("Параметр поиска не может быть пустым"));
         }
-
         ListApiResponse<CategoryResponseDto> response = categoryService.searchCategories(name.trim());
 
         if (response.isSuccess()) {
-            log.info("✅ Found {} categories for search: {}", response.getTotalCount(), name);
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -105,15 +93,18 @@ public class CategoryRestController {
      */
     @GetMapping("/brief")
     public ResponseEntity<ListApiResponse<CategoryBaseProjection>> getActiveCategoriesBrief() {
-        log.info("📊 GET /api/categories/brief - Getting brief categories");
+        try {
+            ListApiResponse<CategoryBaseProjection> response = categoryService.getActiveCategoriesBrief();
 
-        ListApiResponse<CategoryBaseProjection> response = categoryService.getActiveCategoriesBrief();
-
-        if (response.isSuccess()) {
-            log.info("✅ Found {} brief categories", response.getTotalCount());
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            if (response.isSuccess()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при получении списка категорий", e);
+            // Возвращаем ошибку
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -125,16 +116,11 @@ public class CategoryRestController {
     @GetMapping("/brief/all")
     public ResponseEntity<ListApiResponse<CategoryBaseProjection>> getAllCategoriesBrief(
             HttpServletRequest request) {
-
-        log.info("📊 GET /api/categories/brief/all - Getting all brief categories");
-
-        // Проверяем авторизацию
         String userRole = request.getHeader("X-User-Role");
         if (!"ROLE_ADMIN".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ListApiResponse.error("Доступ запрещен"));
         }
-
         ListApiResponse<CategoryBaseProjection> response = categoryService.getAllCategoriesBrief();
 
         if (response.isSuccess()) {
@@ -239,9 +225,10 @@ public class CategoryRestController {
         }
     }
 
-    // ================================
-    // ✏️ СОЗДАНИЕ И ОБНОВЛЕНИЕ КАТЕГОРИЙ (ADMIN ONLY)
-    // ================================
+
+// ================================
+// ✏️ СОЗДАНИЕ И ОБНОВЛЕНИЕ КАТЕГОРИЙ (ADMIN ONLY)
+// ================================
 
     /**
      * Создать новую категорию (с возможностью загрузки изображения)
@@ -251,7 +238,7 @@ public class CategoryRestController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<CategoryResponseDto>> createCategory(
             @Valid @ModelAttribute CreateCategoryDto createCategoryDto,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
         log.info("➕ POST /api/categories - Creating new category: {}", createCategoryDto.getName());
@@ -286,11 +273,11 @@ public class CategoryRestController {
      * PUT /api/categories/{id}
      * Требует: роль ADMIN
      */
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<CategoryResponseDto>> updateCategory(
             @PathVariable Long id,
             @Valid @ModelAttribute CreateCategoryDto updateCategoryDto,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
         log.info("✏️ PUT /api/categories/{} - Updating category", id);
@@ -321,15 +308,10 @@ public class CategoryRestController {
     // 🗑️ УДАЛЕНИЕ КАТЕГОРИЙ (ADMIN ONLY)
     // ================================
 
-    /**
-     * Удалить категорию (мягкое удаление - деактивация)
-     * DELETE /api/categories/{id}
-     * Требует: роль ADMIN
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(
             @PathVariable Long id,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
         log.info("🗑️ DELETE /api/categories/{} - Deleting category", id);
@@ -356,18 +338,14 @@ public class CategoryRestController {
         }
     }
 
-    /**
-     * Переключить статус категории (активна/неактивна)
-     * PATCH /api/categories/{id}/toggle
-     * Требует: роль ADMIN
-     */
-    @PatchMapping("/{id}/toggle")
+
+    @PostMapping("/{id}/toggle")
     public ResponseEntity<ApiResponse<CategoryResponseDto>> toggleCategoryStatus(
             @PathVariable Long id,
-            @CurrentUser Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             HttpServletRequest request) {
 
-        log.info("🔄 PATCH /api/categories/{}/toggle - Toggling category status", id);
+        log.info("🔄 PATCH /api/categories/{}/toggle - Toggling category status by user: {}", id, userId);
 
         // Проверяем авторизацию
         String userRole = request.getHeader("X-User-Role");
@@ -378,15 +356,24 @@ public class CategoryRestController {
                     .body(ApiResponse.error("Доступ запрещен"));
         }
 
-        ApiResponse<CategoryResponseDto> response = categoryService.toggleCategoryStatus(id, userId);
+        try {
+            ApiResponse<CategoryResponseDto> response = categoryService.toggleCategoryStatus(id, userId);
 
-        if (response.isSuccess()) {
-            log.info("✅ Category status toggled: {}", response.getMessage());
-            return ResponseEntity.ok(response);
-        } else if (!response.isSuccess() && response.getMessage().contains("не найдена")) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            if (response.isSuccess()) {
+                log.info("✅ Category status toggled for ID: {} by user: {}", id, userId);
+                return ResponseEntity.ok(response);
+            } else if (response.getMessage() != null && response.getMessage().contains("не найдена")) {
+                log.warn("❌ Category ID: {} not found", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            } else {
+                log.warn("❌ Failed to toggle category status: {}", response.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+
+        } catch (Exception e) {
+            log.error("💥 Error toggling category status for ID: {} by user: {}", id, userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Внутренняя ошибка при изменении статуса категории"));
         }
     }
 
@@ -455,6 +442,7 @@ public class CategoryRestController {
                     .body(ApiResponse.error("Ошибка проверки существования категории"));
         }
     }
+
 
     /**
      * Проверка работоспособности сервиса категорий

@@ -1,7 +1,7 @@
 package com.example.deliveryproductservice.service;
 
-import com.example.deliveryproductservice.dto.CreateAddressRequest;
-import com.example.deliveryproductservice.dto.MapboxPlace;
+import com.example.deliveryproductservice.dto.GeoLocation.CreateAddressRequest;
+import com.example.deliveryproductservice.dto.GeoLocation.MapboxPlace;
 import com.example.deliveryproductservice.model.Address;
 
 import java.math.BigDecimal;

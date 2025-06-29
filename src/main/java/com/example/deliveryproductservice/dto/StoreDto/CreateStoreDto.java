@@ -1,6 +1,6 @@
 package com.example.deliveryproductservice.dto.StoreDto;
 
-import com.example.deliveryproductservice.dto.CreateAddressRequest;
+import com.example.deliveryproductservice.dto.GeoLocation.CreateAddressRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Data;

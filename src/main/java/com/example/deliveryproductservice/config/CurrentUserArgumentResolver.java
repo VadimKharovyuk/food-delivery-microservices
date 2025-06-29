@@ -13,18 +13,28 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(CurrentUser.class) &&
-                parameter.getParameterType().equals(Long.class);
+
+        if (parameter.hasParameterAnnotation(CurrentUser.class) &&
+                parameter.getParameterType().equals(Long.class)) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-                                  NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+    public Object resolveArgument(MethodParameter parameter,
+                                  ModelAndViewContainer mavContainer,
+                                  NativeWebRequest webRequest,
+                                  WebDataBinderFactory binderFactory) {
 
-        String userIdHeader = webRequest.getHeader("X-User-Id");
-        if (userIdHeader != null) {
-            return Long.parseLong(userIdHeader);
+
+        if (parameter.hasParameterAnnotation(CurrentUser.class)) {
+            String userIdHeader = webRequest.getHeader("X-User-Id");
+            return userIdHeader != null ? Long.parseLong(userIdHeader) : null;
         }
+
+
         return null;
     }
 }

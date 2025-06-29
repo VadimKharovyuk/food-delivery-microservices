@@ -1,4 +1,4 @@
-package com.example.deliveryproductservice.dto;
+package com.example.deliveryproductservice.dto.GeoLocation;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;

@@ -94,6 +94,7 @@ public class StoreController {
         }
     }
 
+
     /**
      * Получить магазины текущего пользователя (владельца)
      * GET /api/stores/my
