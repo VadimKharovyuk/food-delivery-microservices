@@ -1,6 +1,6 @@
 package com.example.deliveryproductservice.service;
 
-import com.example.deliveryproductservice.dto.*;
+import com.example.deliveryproductservice.dto.GeoLocation.*;
 import com.example.deliveryproductservice.model.Address;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
