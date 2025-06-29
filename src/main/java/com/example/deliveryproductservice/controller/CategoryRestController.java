@@ -273,7 +273,7 @@ public class CategoryRestController {
      * PUT /api/categories/{id}
      * Требует: роль ADMIN
      */
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<CategoryResponseDto>> updateCategory(
             @PathVariable Long id,
             @Valid @ModelAttribute CreateCategoryDto updateCategoryDto,
@@ -339,7 +339,7 @@ public class CategoryRestController {
     }
 
 
-    @PatchMapping("/{id}/toggle")
+    @PostMapping("/{id}/toggle")
     public ResponseEntity<ApiResponse<CategoryResponseDto>> toggleCategoryStatus(
             @PathVariable Long id,
             @RequestHeader("X-User-Id") Long userId,
@@ -442,6 +442,7 @@ public class CategoryRestController {
                     .body(ApiResponse.error("Ошибка проверки существования категории"));
         }
     }
+
 
     /**
      * Проверка работоспособности сервиса категорий
