@@ -1,5 +1,6 @@
 package com.example.deliveryproductservice.repository;
 
+import com.example.deliveryproductservice.dto.StoreDto.StoreUIProjection;
 import com.example.deliveryproductservice.model.Store;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -30,4 +31,8 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     // Для UI (сортировка по рейтингу)
     Slice<Store> findByIsActiveTrueOrderByRatingDesc(Pageable pageable);
+
+    // Interface-based проекция - Spring автоматически создаст прокси
+    Slice<StoreUIProjection> findByIsActiveTrueOrderByRatingDescCreatedAtDesc(Pageable pageable);
+
 }

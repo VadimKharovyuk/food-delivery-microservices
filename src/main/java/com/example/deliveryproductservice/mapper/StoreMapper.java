@@ -2,6 +2,7 @@ package com.example.deliveryproductservice.mapper;
 
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
 import com.example.deliveryproductservice.dto.StoreDto.StoreUIDto;
+import com.example.deliveryproductservice.dto.StoreDto.StoreUIProjection;
 import com.example.deliveryproductservice.model.Store;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -50,6 +51,15 @@ public class StoreMapper {
                 .picUrl(store.getPicUrl())
                 .rating(store.getRating() != null ? store.getRating() : BigDecimal.valueOf(0.0))
                 .estimatedDeliveryTime(store.getEstimatedDeliveryTime())
+                .build();
+    }
+
+    public StoreUIDto mapProjectionToUIDto(StoreUIProjection projection) {
+        return StoreUIDto.builder()
+                .name(projection.getName())
+                .picUrl(projection.getPicUrl())
+                .rating(projection.getRating() != null ? projection.getRating() : BigDecimal.ZERO)
+                .estimatedDeliveryTime(projection.getEstimatedDeliveryTime())
                 .build();
     }
 }

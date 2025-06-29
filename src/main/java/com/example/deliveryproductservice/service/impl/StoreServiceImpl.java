@@ -92,11 +92,15 @@ public class StoreServiceImpl implements StoreService {
 
         try {
             Pageable pageable = PageRequest.of(0, UI_STORE_LIMIT);
-            Slice<Store> storeSlice = storeRepository.findByIsActiveTrueOrderByRatingDesc(pageable);
 
-            List<StoreUIDto> uiStores = storeSlice.getContent().stream()
-                    .map(storeMapper::mapToUIDto)
+            // Используем проекцию - достаем только нужные поля
+            Slice<StoreUIProjection> storeProjections =
+                    storeRepository.findByIsActiveTrueOrderByRatingDescCreatedAtDesc(pageable);
+
+            List<StoreUIDto> uiStores = storeProjections.getContent().stream()
+                    .map(storeMapper::mapProjectionToUIDto)
                     .collect(Collectors.toList());
+
             return StoreUIResponseWrapper.success(uiStores);
 
         } catch (Exception e) {
@@ -104,6 +108,7 @@ public class StoreServiceImpl implements StoreService {
             return StoreUIResponseWrapper.error("Ошибка получения списка магазинов");
         }
     }
+
 
 
     @Transactional(readOnly = true)
