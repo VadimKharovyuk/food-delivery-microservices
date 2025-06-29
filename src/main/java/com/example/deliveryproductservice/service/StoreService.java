@@ -16,6 +16,7 @@ public interface StoreService {
 
     StoreUIResponseWrapper getActiveStoresForUI();
 
+    StoreBriefResponseWrapper getActiveStoresBrief(int page, int size);
 
 
 }

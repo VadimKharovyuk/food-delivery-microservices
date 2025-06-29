@@ -1,4 +1,3 @@
-// StoreServiceImpl.java - Полная реализация создания магазина
 package com.example.deliveryproductservice.service.impl;
 
 import com.example.deliveryproductservice.dto.StoreDto.*;
@@ -72,6 +71,7 @@ public class StoreServiceImpl implements StoreService {
         }
     }
 
+///для админа
     @Override
     @Transactional(readOnly = true)
     public StoreResponseWrapper getActiveStores(int page, int size) {
@@ -108,7 +108,25 @@ public class StoreServiceImpl implements StoreService {
             return StoreUIResponseWrapper.error("Ошибка получения списка магазинов");
         }
     }
+    @Override
+    @Transactional(readOnly = true)
+    public StoreBriefResponseWrapper getActiveStoresBrief(int page, int size) {
+        log.debug("Getting active stores brief with pagination: page={}, size={}", page, size);
 
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Slice<StoreBriefProjection> storeProjections =
+                    storeRepository.findActiveStoresBrief(pageable);
+
+            Slice<StoreBriefDto> storeDtoSlice = storeProjections.map(StoreBriefDto::fromProjection);
+
+            return StoreBriefResponseWrapper.success(storeDtoSlice);
+
+        } catch (Exception e) {
+            log.error("Error getting brief stores", e);
+            return StoreBriefResponseWrapper.error("Ошибка получения списка магазинов");
+        }
+    }
 
 
     @Transactional(readOnly = true)
@@ -123,7 +141,8 @@ public class StoreServiceImpl implements StoreService {
 
         return StoreResponseWrapper.success(storeDtoSlice);
     }
-@Override
+
+    @Override
     @Transactional(readOnly = true)
     public SingleStoreResponseWrapper getStoreById(Long storeId) {
         log.debug("Getting store by ID: {}", storeId);
@@ -137,6 +156,7 @@ public class StoreServiceImpl implements StoreService {
             return SingleStoreResponseWrapper.notFound(storeId);
         }
     }
+
 
 
 
@@ -224,7 +244,6 @@ public class StoreServiceImpl implements StoreService {
 
         return store;
     }
-
 
 
     /**

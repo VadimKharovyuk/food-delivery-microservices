@@ -7,15 +7,11 @@ public interface StoreBriefProjection {
     String getName();
     Boolean getIsActive();
     BigDecimal getRating();
-    Integer getDeliveryRadius();
     BigDecimal getDeliveryFee();
     Integer getEstimatedDeliveryTime();
     String getPicUrl();
 
-    // Адрес
+    // Адрес - через вложенные свойства
     String getAddressCity();
     String getAddressStreet();
-    BigDecimal getAddressLatitude();
-    BigDecimal getAddressLongitude();
-
 }
