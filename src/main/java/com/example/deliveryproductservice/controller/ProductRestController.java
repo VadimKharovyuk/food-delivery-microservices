@@ -23,10 +23,6 @@ public class ProductRestController {
     private final ProductService productService;
 
 
-    /**
-     * Получить все доступные продукты
-     * GET /api/products
-     */
     @GetMapping
     public ResponseEntity<ProductResponseWrapper> getAllAvailableProducts(
             @RequestParam(defaultValue = "0") int page,
