@@ -1,69 +1,103 @@
 package com.example.deliveryproductservice.service;
-
 import com.example.deliveryproductservice.dto.category.*;
-
+import com.example.deliveryproductservice.repository.CategoryRepository;
 import java.util.List;
-import java.util.Optional;
-
-
 public interface CategoryService {
 
 
-    CategoryResponseDto createCategory(CreateCategoryDto dto, Long createdBy);
-
-
-    CategoryResponseDto updateCategory(Long id, CreateCategoryDto dto, Long updatedBy);
-    CategoryStatsResponseWrapper getCategoryStats();
-
-    void deleteCategory(Long id, Long deletedBy);
-
-    // ================================
-    // 🔍 ПОЛУЧЕНИЕ ПОЛНОЙ ИНФОРМАЦИИ
-    // ================================
-
-    CategoryBriefResponseWrapper getActiveCategoriesBrief() ;
-    CategoriesResponseWrapper getAllActiveCategories();
+    ApiResponse<CategoryResponseDto> createCategory(CreateCategoryDto dto, Long createdBy);
 
     /**
-     * 🔍 Получить категорию по ID (полная информация)
-     *
-     * Возвращает полную информацию о категории по указанному ID.
-     * Включает все поля, даже если категория неактивна.
-     *
-     * @param id ID категории
-     * @return полная информация о категории
-     * @throws RuntimeException если категория не найдена
+     * ✏️ Обновить категорию
      */
-    CategoryResponseDto getCategoryById(Long id);
+    ApiResponse<CategoryResponseDto> updateCategory(Long id, CreateCategoryDto dto, Long updatedBy);
+
+    /**
+     * 🗑️ Удалить категорию (деактивировать)
+     */
+    ApiResponse<Void> deleteCategory(Long id, Long deletedBy);
+
+    /**
+     * 🔍 Получить категорию по ID - полная информация
+     */
+    ApiResponse<CategoryResponseDto> getCategoryById(Long id);
+
+
+    /**
+     * 📋 Все активные категории - полная информация
+     */
+    ListApiResponse<CategoryResponseDto> getAllActiveCategories();
+
+    /**
+     * 📋 Все категории (включая неактивные) - полная информация
+     */
+    ListApiResponse<CategoryResponseDto> getAllCategories();
+
+    /**
+     * 🔍 Поиск категорий по названию - полная информация
+     */
+    ListApiResponse<CategoryResponseDto> searchCategories(String name);
 
     // ================================
-    // 📊 ЛЕГКОВЕСНЫЕ ПРОЕКЦИИ
+    // 📋 ПОЛУЧЕНИЕ СПИСКОВ - КРАТКАЯ ИНФОРМАЦИЯ (ПРОЕКЦИИ)
     // ================================
 
     /**
-     * 🔍 Получить краткую информацию о категории по ID
-     *
-     * Возвращает только основные поля категории (ID, название, статус, порядок).
-     * Может вернуть и неактивную категорию, если она существует.
-     * Подходит для быстрой проверки существования и базовой информации.
-     *
-     * @param id ID категории
-     * @return краткая информация о категории или Optional.empty() если не найдена
+     * 📋 Активные категории - краткая информация
      */
-    Optional<CategoryBaseProjection> getCategoryBrief(Long id);
+    ListApiResponse<CategoryBaseProjection> getActiveCategoriesBrief();
 
     /**
-     * 🔍 Получить краткую информацию о категориях по списку ID
-     *
-     * Возвращает краткую информацию только для найденных категорий.
-     * Если какие-то ID не существуют, они просто не включаются в результат.
-     * Полезно для:
-     * - Получения информации о избранных категориях
-     * - Валидации списка категорий
-     * - Массовых операций
-     *
-     * @param ids список ID категорий для получения
-     * @return список найденных категорий с краткой информацией
+     * 🔍 Одна категория - краткая информация
      */
-    List<CategoryBaseProjection> getCategoriesBriefByIds(List<Long> ids);
+    ApiResponse<CategoryBaseProjection> getCategoryBrief(Long id);
+
+    /**
+     * 📋 Категории по списку ID - краткая информация
+     */
+    ListApiResponse<CategoryBaseProjection> getCategoriesBriefByIds(List<Long> ids);
+
+    /**
+     * 📋 Все категории (включая неактивные) - краткая информация
+     */
+    ListApiResponse<CategoryBaseProjection> getAllCategoriesBrief();
+
+    /**
+     * 🔍 Поиск категорий по названию - краткая информация
+     */
+    ListApiResponse<CategoryBaseProjection> searchCategoriesBrief(String name);
+
+    // ================================
+    // 📊 СТАТИСТИКА И АНАЛИТИКА
+    // ================================
+
+    /**
+     * 📊 Статистика категорий
+     */
+    ListApiResponse<CategoryRepository.CategoryStatsProjection> getCategoryStats();
+
+    // ================================
+    // 🔢 ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+    // ================================
+
+    /**
+     * 🔢 Количество активных категорий
+     */
+    Long getActiveCategoriesCount();
+
+    /**
+     * ✅ Проверить существование активной категории по имени
+     */
+    boolean existsActiveCategoryByName(String name);
+
+    /**
+     * ✅ Проверить существование категории по ID
+     */
+    boolean existsCategoryById(Long id);
+
+    /**
+     * 🔄 Активировать/деактивировать категорию
+     */
+    ApiResponse<CategoryResponseDto> toggleCategoryStatus(Long id, Long updatedBy);
 }
+

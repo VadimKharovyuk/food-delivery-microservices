@@ -1,10 +1,6 @@
-// StoreServiceImpl.java - Полная реализация создания магазина
 package com.example.deliveryproductservice.service.impl;
 
-import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
-import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
+import com.example.deliveryproductservice.dto.StoreDto.*;
 import com.example.deliveryproductservice.mapper.StoreMapper;
 import com.example.deliveryproductservice.model.Address;
 import com.example.deliveryproductservice.model.Store;
@@ -15,6 +11,7 @@ import com.example.deliveryproductservice.service.StoreService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -24,7 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -36,6 +35,7 @@ public class StoreServiceImpl implements StoreService {
     private final StoreMapper storeMapper;
     private final StorageService storageService;
     private final GeocodingService geocodingService;
+    private static final int UI_STORE_LIMIT = 6;
 
     @Override
     public StoreResponseDto createStore(CreateStoreDto createStoreDto, Long ownerId) {
@@ -71,6 +71,7 @@ public class StoreServiceImpl implements StoreService {
         }
     }
 
+///для админа
     @Override
     @Transactional(readOnly = true)
     public StoreResponseWrapper getActiveStores(int page, int size) {
@@ -82,6 +83,48 @@ public class StoreServiceImpl implements StoreService {
         Slice<StoreResponseDto> storeDtoSlice = storeSlice.map(storeMapper::mapToResponseDto);
 
         return StoreResponseWrapper.success(storeDtoSlice);
+    }
+
+    // Для UI с лимитом (возвращает только нужные поля)
+    @Transactional(readOnly = true)
+    public StoreUIResponseWrapper getActiveStoresForUI() {
+        log.debug("Getting limited active stores for UI with limit: {}", UI_STORE_LIMIT);
+
+        try {
+            Pageable pageable = PageRequest.of(0, UI_STORE_LIMIT);
+
+            Slice<StoreUIProjection> storeProjections =
+                    storeRepository.findByIsActiveTrueOrderByRatingDescCreatedAtDesc(pageable);
+
+            List<StoreUIDto> uiStores = storeProjections.getContent().stream()
+                    .map(storeMapper::mapProjectionToUIDto)
+                    .collect(Collectors.toList());
+
+            return StoreUIResponseWrapper.success(uiStores);
+
+        } catch (Exception e) {
+            log.error("Error getting stores for UI", e);
+            return StoreUIResponseWrapper.error("Ошибка получения списка магазинов");
+        }
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public StoreBriefResponseWrapper getActiveStoresBrief(int page, int size) {
+        log.debug("Getting active stores brief with pagination: page={}, size={}", page, size);
+
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Slice<StoreBriefProjection> storeProjections =
+                    storeRepository.findActiveStoresBrief(pageable);
+
+            Slice<StoreBriefDto> storeDtoSlice = storeProjections.map(StoreBriefDto::fromProjection);
+
+            return StoreBriefResponseWrapper.success(storeDtoSlice);
+
+        } catch (Exception e) {
+            log.error("Error getting brief stores", e);
+            return StoreBriefResponseWrapper.error("Ошибка получения списка магазинов");
+        }
     }
 
 
@@ -97,7 +140,8 @@ public class StoreServiceImpl implements StoreService {
 
         return StoreResponseWrapper.success(storeDtoSlice);
     }
-@Override
+
+    @Override
     @Transactional(readOnly = true)
     public SingleStoreResponseWrapper getStoreById(Long storeId) {
         log.debug("Getting store by ID: {}", storeId);
@@ -111,6 +155,9 @@ public class StoreServiceImpl implements StoreService {
             return SingleStoreResponseWrapper.notFound(storeId);
         }
     }
+
+
+
 
     // ================================
     // 🛠️ ПРИВАТНЫЕ МЕТОДЫ
@@ -196,15 +243,6 @@ public class StoreServiceImpl implements StoreService {
 
         return store;
     }
-
-    /**
-     * 🖼️ Получение URL дефолтного изображения
-     */
-    private String getDefaultStoreImageUrl() {
-        // Можно настроить через properties или использовать Cloudinary
-        return "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image";
-    }
-
 
 
     /**

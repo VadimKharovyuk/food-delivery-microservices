@@ -2,13 +2,12 @@
 package com.example.deliveryproductservice.controller;
 
 import com.example.deliveryproductservice.annotation.CurrentUser;
-import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
-import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
+import com.example.deliveryproductservice.dto.StoreDto.*;
 import com.example.deliveryproductservice.service.StoreService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +16,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/stores")
 @RequiredArgsConstructor
@@ -24,8 +27,6 @@ import org.springframework.web.bind.annotation.*;
 public class StoreController {
 
     private final StoreService storeService;
-
-
 
     @GetMapping
     public ResponseEntity<StoreResponseWrapper> getActiveStores(
@@ -38,6 +39,59 @@ public class StoreController {
 
         log.info("✅ Found {} stores, hasNext: {}", response.getTotalCount(), response.getHasNext());
         return ResponseEntity.ok(response);
+    }
+
+
+    // Эндпоинт для получения кратких данных о магазинах с пагинацией
+    @GetMapping("/brief")
+    public ResponseEntity<StoreBriefResponseWrapper> getActiveStoresBrief(
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "Page number must be non-negative")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "Page size must be positive")
+            @Max(value = 100, message = "Page size must not exceed 100")
+            int size) {
+
+        log.debug("Getting active stores brief with pagination: page={}, size={}", page, size);
+
+        try {
+            StoreBriefResponseWrapper response = storeService.getActiveStoresBrief(page, size);
+
+            if (response.getSuccess()) {
+                log.debug("Successfully retrieved {} stores for page {}",
+                        response.getTotalCount(), page);
+                return ResponseEntity.ok(response);
+            } else {
+                log.warn("Failed to retrieve stores: {}", response.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(response);
+            }
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid pagination parameters: page={}, size={}", page, size, e);
+            return ResponseEntity.badRequest()
+                    .body(StoreBriefResponseWrapper.error("Неверные параметры пагинации"));
+
+        } catch (Exception e) {
+            log.error("Unexpected error getting brief stores: page={}, size={}", page, size, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(StoreBriefResponseWrapper.error("Внутренняя ошибка сервера"));
+        }
+    }
+
+    /// 6  маназинов для UI по рейтингу
+    @GetMapping("/ui")
+    public ResponseEntity<StoreUIResponseWrapper> getStoresForUI() {
+        log.debug("Getting stores for UI");
+        StoreUIResponseWrapper response = storeService.getActiveStoresForUI();
+
+        if (response.getSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     /**
@@ -155,24 +209,11 @@ public class StoreController {
     // 🔧 ДОПОЛНИТЕЛЬНЫЕ ENDPOINTS (для развития)
     // ================================
 
-    /**
-     * 🧪 Тестовый endpoint для проверки доступности API
-     * GET /api/stores/health
-     */
-    @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        log.debug("🔧 GET /api/stores/health - Health check");
-        return ResponseEntity.ok("Stores API is up and running! 🏪");
-    }
-
-
-
-
 
     /**
      * 🏪 Создать новый магазин (JSON версия без изображения)
      * POST /api/stores/simple
-     *
+     * <p>
      * Доступ: только ROLE_BUSINESS
      * Принимает JSON данные без изображения
      */
@@ -231,7 +272,16 @@ public class StoreController {
         }
     }
 
+    // Эндпоинт для проверки здоровья сервиса
+    @GetMapping("/brief/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> health = new HashMap<>();
+        health.put("status", "UP");
+        health.put("timestamp", LocalDateTime.now());
+        health.put("service", "Store Brief Service");
 
+        return ResponseEntity.ok(health);
+    }
 }
 
 
