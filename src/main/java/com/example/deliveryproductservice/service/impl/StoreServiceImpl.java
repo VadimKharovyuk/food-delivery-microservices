@@ -2,7 +2,9 @@
 package com.example.deliveryproductservice.service.impl;
 
 import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
+import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
+import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
 import com.example.deliveryproductservice.mapper.StoreMapper;
 import com.example.deliveryproductservice.model.Address;
 import com.example.deliveryproductservice.model.Store;
@@ -13,11 +15,16 @@ import com.example.deliveryproductservice.service.StoreService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -61,6 +68,47 @@ public class StoreServiceImpl implements StoreService {
         } catch (Exception e) {
             log.error("❌ Error creating store for owner {}: {}", ownerId, e.getMessage(), e);
             throw new RuntimeException("Failed to create store: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StoreResponseWrapper getActiveStores(int page, int size) {
+        log.debug("Getting active stores with pagination: page={}, size={}", page, size);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Slice<Store> storeSlice = storeRepository.findByIsActiveTrueOrderByCreatedAtDesc(pageable);
+
+        Slice<StoreResponseDto> storeDtoSlice = storeSlice.map(storeMapper::mapToResponseDto);
+
+        return StoreResponseWrapper.success(storeDtoSlice);
+    }
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public StoreResponseWrapper getStoresByOwner(Long ownerId, int page, int size) {
+        log.debug("Getting stores for owner {} with pagination: page={}, size={}", ownerId, page, size);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Slice<Store> storeSlice = storeRepository.findByOwnerIdAndIsActiveTrueOrderByCreatedAtDesc(ownerId, pageable);
+
+        Slice<StoreResponseDto> storeDtoSlice = storeSlice.map(storeMapper::mapToResponseDto);
+
+        return StoreResponseWrapper.success(storeDtoSlice);
+    }
+@Override
+    @Transactional(readOnly = true)
+    public SingleStoreResponseWrapper getStoreById(Long storeId) {
+        log.debug("Getting store by ID: {}", storeId);
+
+        Optional<Store> storeOptional = storeRepository.findByIdAndIsActiveTrue(storeId);
+
+        if (storeOptional.isPresent()) {
+            StoreResponseDto storeDto = storeMapper.mapToResponseDto(storeOptional.get());
+            return SingleStoreResponseWrapper.success(storeDto);
+        } else {
+            return SingleStoreResponseWrapper.notFound(storeId);
         }
     }
 
@@ -120,41 +168,32 @@ public class StoreServiceImpl implements StoreService {
     /**
      * 🏪 Создание сущности Store
      */
-    private Store buildStoreEntity(CreateStoreDto dto, Long ownerId, Address address, ImageUploadResult imageResult) {
-        log.debug("🔨 Building Store entity for owner: {}", ownerId);
-
+    private Store buildStoreEntity(CreateStoreDto createStoreDto, Long ownerId, Address storeAddress, ImageUploadResult imageResult) {
         Store store = new Store();
-
-        // Основная информация
         store.setOwnerId(ownerId);
-        store.setName(dto.getName());
-        store.setDescription(dto.getDescription());
-        store.setAddress(address);
+        store.setName(createStoreDto.getName());
+        store.setDescription(createStoreDto.getDescription());
+        store.setAddress(storeAddress);
+        store.setPhone(createStoreDto.getPhone());
+        store.setEmail(createStoreDto.getEmail());
+        store.setIsActive(createStoreDto.getIsActive());
+        store.setDeliveryRadius(createStoreDto.getDeliveryRadius());
+        store.setDeliveryFee(createStoreDto.getDeliveryFee());
+        store.setEstimatedDeliveryTime(createStoreDto.getEstimatedDeliveryTime());
 
-        // Контактная информация
-        store.setPhone(dto.getPhone());
-        store.setEmail(dto.getEmail());
-
-        // Настройки доставки
-        store.setDeliveryRadius(dto.getDeliveryRadius());
-        store.setDeliveryFee(dto.getDeliveryFee());
-        store.setEstimatedDeliveryTime(dto.getEstimatedDeliveryTime());
-
-        // Изображение
-        if (imageResult.getImageUrl() != null) {
-            store.setPicUrl(imageResult.getImageUrl());
+        // Генерируем уникальный pic_id
+        if (imageResult != null && imageResult.getImageId() != null) {
             store.setPicId(imageResult.getImageId());
+            store.setPicUrl(imageResult.getImageUrl());
         } else {
-            // Дефолтное изображение для магазинов
-            store.setPicUrl(getDefaultStoreImageUrl());
-            store.setPicId("default_store_image");
+            // Генерируем уникальный ID для дефолтного изображения
+            String uniquePicId = "default_store_" + System.currentTimeMillis() + "_" + ownerId;
+            store.setPicId(uniquePicId);
+            store.setPicUrl("https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
         }
 
-        // Статус и рейтинг
-        store.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
-        // rating остается BigDecimal.ZERO по умолчанию
+        store.setRating(BigDecimal.ZERO);
 
-        log.debug("✅ Store entity built successfully");
         return store;
     }
 
@@ -166,15 +205,7 @@ public class StoreServiceImpl implements StoreService {
         return "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image";
     }
 
-    /**
-     * 🔍 Валидация уникальности названия магазина
-     */
-    private void validateStoreUniqueness(String storeName, Long ownerId) {
-        boolean exists = storeRepository.existsByNameAndOwnerIdAndIsActiveTrue(storeName, ownerId);
-        if (exists) {
-            throw new RuntimeException("Store with name '" + storeName + "' already exists for this owner");
-        }
-    }
+
 
     /**
      * 📊 Логирование статистики создания

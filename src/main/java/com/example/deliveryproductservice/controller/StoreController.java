@@ -3,7 +3,9 @@ package com.example.deliveryproductservice.controller;
 
 import com.example.deliveryproductservice.annotation.CurrentUser;
 import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
+import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
 import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
+import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
 import com.example.deliveryproductservice.service.StoreService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -23,13 +25,77 @@ public class StoreController {
 
     private final StoreService storeService;
 
+
+
+    @GetMapping
+    public ResponseEntity<StoreResponseWrapper> getActiveStores(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        log.info("📋 GET /api/stores - Getting active stores: page={}, size={}", page, size);
+
+        StoreResponseWrapper response = storeService.getActiveStores(page, size);
+
+        log.info("✅ Found {} stores, hasNext: {}", response.getTotalCount(), response.getHasNext());
+        return ResponseEntity.ok(response);
+    }
+
     /**
-     * 🏪 Создать новый магазин
-     * POST /api/stores
-     *
-     * Доступ: только ROLE_BUSINESS
-     * Поддерживает загрузку изображения через multipart/form-data
+     * Получить магазины текущего пользователя (владельца)
+     * GET /api/stores/my
      */
+    @GetMapping("/my")
+    public ResponseEntity<StoreResponseWrapper> getMyStores(
+            @CurrentUser Long ownerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        log.info("📋 GET /api/stores/my - Getting stores for current user: page={}, size={}", page, size);
+
+        StoreResponseWrapper response = storeService.getStoresByOwner(ownerId, page, size);
+
+        log.info("✅ Found {} stores for user {}, hasNext: {}", response.getTotalCount(), ownerId, response.getHasNext());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Получить магазины конкретного владельца
+     * GET /api/stores/owner/{ownerId}
+     */
+    @GetMapping("/owner/{ownerId}")
+    public ResponseEntity<StoreResponseWrapper> getStoresByOwner(
+            @PathVariable Long ownerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        log.info("📋 GET /api/stores/owner/{} - Getting stores for owner: page={}, size={}", ownerId, page, size);
+
+        StoreResponseWrapper response = storeService.getStoresByOwner(ownerId, page, size);
+
+        log.info("✅ Found {} stores for owner {}, hasNext: {}", response.getTotalCount(), ownerId, response.getHasNext());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Получить магазин по ID
+     * GET /api/stores/{id}
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<SingleStoreResponseWrapper> getStoreById(@PathVariable Long id) {
+        log.info("🔍 GET /api/stores/{} - Getting store by ID", id);
+
+        SingleStoreResponseWrapper response = storeService.getStoreById(id);
+
+        if (response.getSuccess()) {
+            log.info("✅ Store found: {}", response.getStore().getName());
+            return ResponseEntity.ok(response);
+        } else {
+            log.warn("❌ Store not found with ID: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<StoreResponseDto> createStore(
             @Valid @ModelAttribute CreateStoreDto createStoreDto,
@@ -99,23 +165,8 @@ public class StoreController {
         return ResponseEntity.ok("Stores API is up and running! 🏪");
     }
 
-    /**
-     * ℹ️ Информация о сервисе магазинов
-     * GET /api/stores/info
-     */
-    @GetMapping("/info")
-    public ResponseEntity<StoreServiceInfo> getServiceInfo() {
-        log.debug("ℹ️ GET /api/stores/info - Getting service info");
 
-        StoreServiceInfo info = new StoreServiceInfo(
-                "Stores Management Service",
-                "1.0.0",
-                "Manages store creation and operations for BUSINESS users",
-                "Active"
-        );
 
-        return ResponseEntity.ok(info);
-    }
 
 
     /**
@@ -180,29 +231,7 @@ public class StoreController {
         }
     }
 
-    // ================================
-    // 📦 ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ
-    // ================================
 
-    /**
-     * Информация о сервисе магазинов
-     */
-    @Getter
-    public static class StoreServiceInfo {
-        // Getters
-        private final String serviceName;
-        private final String version;
-        private final String description;
-        private final String status;
-
-        public StoreServiceInfo(String serviceName, String version, String description, String status) {
-            this.serviceName = serviceName;
-            this.version = version;
-            this.description = description;
-            this.status = status;
-        }
-
-    }
 }
 
 

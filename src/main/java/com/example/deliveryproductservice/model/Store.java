@@ -51,7 +51,6 @@ public class Store {
     private Integer deliveryRadius;
 
 
-
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal deliveryFee;
 
@@ -61,7 +60,7 @@ public class Store {
     @Column(nullable = false)
     private String picUrl;
 
-    @Column(nullable = false)
+    @Column(nullable = true, unique = true) // Разрешаем NULL
     private String picId;
 
 
