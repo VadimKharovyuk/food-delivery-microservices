@@ -1,10 +1,7 @@
 // StoreServiceImpl.java - Полная реализация создания магазина
 package com.example.deliveryproductservice.service.impl;
 
-import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
-import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
+import com.example.deliveryproductservice.dto.StoreDto.*;
 import com.example.deliveryproductservice.mapper.StoreMapper;
 import com.example.deliveryproductservice.model.Address;
 import com.example.deliveryproductservice.model.Store;
@@ -15,6 +12,7 @@ import com.example.deliveryproductservice.service.StoreService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -24,7 +22,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -36,6 +36,7 @@ public class StoreServiceImpl implements StoreService {
     private final StoreMapper storeMapper;
     private final StorageService storageService;
     private final GeocodingService geocodingService;
+    private static final int UI_STORE_LIMIT = 6;
 
     @Override
     public StoreResponseDto createStore(CreateStoreDto createStoreDto, Long ownerId) {
@@ -84,6 +85,26 @@ public class StoreServiceImpl implements StoreService {
         return StoreResponseWrapper.success(storeDtoSlice);
     }
 
+    // Для UI с лимитом (возвращает только нужные поля)
+    @Transactional(readOnly = true)
+    public StoreUIResponseWrapper getActiveStoresForUI() {
+        log.debug("Getting limited active stores for UI with limit: {}", UI_STORE_LIMIT);
+
+        try {
+            Pageable pageable = PageRequest.of(0, UI_STORE_LIMIT);
+            Slice<Store> storeSlice = storeRepository.findByIsActiveTrueOrderByRatingDesc(pageable);
+
+            List<StoreUIDto> uiStores = storeSlice.getContent().stream()
+                    .map(storeMapper::mapToUIDto)
+                    .collect(Collectors.toList());
+            return StoreUIResponseWrapper.success(uiStores);
+
+        } catch (Exception e) {
+            log.error("Error getting stores for UI", e);
+            return StoreUIResponseWrapper.error("Ошибка получения списка магазинов");
+        }
+    }
+
 
     @Transactional(readOnly = true)
     @Override
@@ -111,6 +132,8 @@ public class StoreServiceImpl implements StoreService {
             return SingleStoreResponseWrapper.notFound(storeId);
         }
     }
+
+
 
     // ================================
     // 🛠️ ПРИВАТНЫЕ МЕТОДЫ
@@ -195,14 +218,6 @@ public class StoreServiceImpl implements StoreService {
         store.setRating(BigDecimal.ZERO);
 
         return store;
-    }
-
-    /**
-     * 🖼️ Получение URL дефолтного изображения
-     */
-    private String getDefaultStoreImageUrl() {
-        // Можно настроить через properties или использовать Cloudinary
-        return "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image";
     }
 
 

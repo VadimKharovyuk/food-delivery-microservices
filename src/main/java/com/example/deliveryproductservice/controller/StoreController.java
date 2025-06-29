@@ -2,10 +2,7 @@
 package com.example.deliveryproductservice.controller;
 
 import com.example.deliveryproductservice.annotation.CurrentUser;
-import com.example.deliveryproductservice.dto.StoreDto.CreateStoreDto;
-import com.example.deliveryproductservice.dto.StoreDto.SingleStoreResponseWrapper;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseDto;
-import com.example.deliveryproductservice.dto.StoreDto.StoreResponseWrapper;
+import com.example.deliveryproductservice.dto.StoreDto.*;
 import com.example.deliveryproductservice.service.StoreService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -26,7 +23,17 @@ public class StoreController {
     private final StoreService storeService;
 
 
+    @GetMapping("/ui")
+    public ResponseEntity<StoreUIResponseWrapper> getStoresForUI() {
+        log.debug("Getting stores for UI");
+        StoreUIResponseWrapper response = storeService.getActiveStoresForUI();
 
+        if (response.getSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
     @GetMapping
     public ResponseEntity<StoreResponseWrapper> getActiveStores(
             @RequestParam(defaultValue = "0") int page,

@@ -26,4 +26,8 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
 
     Optional<Store> findByIdAndIsActiveTrue(Long storeId);
+
+
+    // Для UI (сортировка по рейтингу)
+    Slice<Store> findByIsActiveTrueOrderByRatingDesc(Pageable pageable);
 }
