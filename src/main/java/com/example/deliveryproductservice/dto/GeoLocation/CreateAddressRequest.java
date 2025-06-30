@@ -38,4 +38,6 @@ public class CreateAddressRequest {
     // Или автоматически получить из адреса
     @Builder.Default
     private Boolean autoGeocode = true;
+
+
 }

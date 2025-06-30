@@ -125,6 +125,47 @@ public class StoreController {
         return ResponseEntity.ok(response);
     }
 
+
+    /**
+     * 🏪 Создать новый магазин через JSON (без файлов)
+     * POST /api/stores/json
+     * Требует: роль ROLE_BUSINESS
+     */
+    @PostMapping(value = "/json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StoreResponseDto> createStoreJson(
+            @Valid @RequestBody CreateStoreDto createStoreDto,
+            @CurrentUser Long userId,
+            HttpServletRequest request) {
+
+        log.info("🏪 POST /api/stores/json - Creating new store: {} by user: {}", createStoreDto.getName(), userId);
+
+        // Логируем полученные данные
+        log.info("📍 JSON Address: street={}, city={}, region={}, country={}",
+                createStoreDto.getStreet(),
+                createStoreDto.getCity(),
+                createStoreDto.getRegion(),
+                createStoreDto.getCountry());
+
+        // 🔐 Проверяем роль ROLE_BUSINESS
+        ResponseEntity<StoreResponseDto> authCheck = checkBusinessRole(userId, request);
+        if (authCheck != null) {
+            return authCheck;
+        }
+
+        try {
+            StoreResponseDto createdStore = storeService.createStore(createStoreDto, userId);
+
+            log.info("✅ Store created successfully: {} (ID: {})", createdStore.getName(), createdStore.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdStore);
+
+        } catch (RuntimeException e) {
+            return handleStoreCreationError(e);
+        } catch (Exception e) {
+            log.error("❌ Unexpected error creating store", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     /**
      * 🏪 Создать новый магазин (с изображением)
      * POST /api/stores
@@ -133,7 +174,7 @@ public class StoreController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<StoreResponseDto> createStore(
             @Valid @ModelAttribute CreateStoreDto createStoreDto,
-            @CurrentUser Long userId, // ← Используем @CurrentUser
+            @CurrentUser Long userId,
             HttpServletRequest request) {
 
         log.info("🏪 POST /api/stores - Creating new store: {} by user: {}", createStoreDto.getName(), userId);

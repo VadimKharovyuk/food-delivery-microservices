@@ -21,6 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -37,6 +41,7 @@ public class StoreServiceImpl implements StoreService {
     private final GeocodingService geocodingService;
     private static final int UI_STORE_LIMIT = 6;
 
+
     @Override
     public StoreResponseDto createStore(CreateStoreDto createStoreDto, Long ownerId) {
         log.info("Creating new store: {} by user: {}", createStoreDto.getName(), ownerId);
@@ -47,8 +52,18 @@ public class StoreServiceImpl implements StoreService {
             log.info("📍 Address created with coordinates: [{}, {}]",
                     storeAddress.getLatitude(), storeAddress.getLongitude());
 
-            // 2. 📸 Загружаем изображение магазина (если есть)
-            ImageUploadResult imageResult = handleImageUpload(createStoreDto.getImageFile(), "stores");
+            // 2. 📸 Обрабатываем изображение (multipart или Base64)
+            ImageUploadResult imageResult;
+            if (createStoreDto.getImageFile() != null && !createStoreDto.getImageFile().isEmpty()) {
+                // Multipart файл
+                imageResult = handleImageUpload(createStoreDto.getImageFile(), "stores");
+            } else if (createStoreDto.getImageBase64() != null && !createStoreDto.getImageBase64().trim().isEmpty()) {
+                // Base64 строка
+                imageResult = handleBase64ImageUpload(createStoreDto);
+            } else {
+                // Нет изображения
+                imageResult = new ImageUploadResult(null, "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
+            }
 
             // 3. 🏪 Создаем сущность Store
             Store store = buildStoreEntity(createStoreDto, ownerId, storeAddress, imageResult);
@@ -68,6 +83,87 @@ public class StoreServiceImpl implements StoreService {
         } catch (Exception e) {
             log.error("❌ Error creating store for owner {}: {}", ownerId, e.getMessage(), e);
             throw new RuntimeException("Failed to create store: " + e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * Обработка Base64 изображения из JSON
+     */
+    private ImageUploadResult handleBase64ImageUpload(CreateStoreDto createStoreDto) {
+        if (createStoreDto.getImageBase64() == null || createStoreDto.getImageBase64().trim().isEmpty()) {
+            log.info("📸 No Base64 image provided, using default");
+            return new ImageUploadResult(null, "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
+        }
+
+        try {
+            log.info("📸 Processing Base64 image: {}", createStoreDto.getImageName());
+
+            // Извлекаем данные из Base64 (убираем data:image/jpeg;base64, префикс)
+            String base64Data = createStoreDto.getImageBase64();
+            if (base64Data.contains(",")) {
+                base64Data = base64Data.split(",")[1];
+            }
+
+            // Декодируем Base64
+            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+
+            // Определяем расширение файла
+            String extension = getImageExtensionFromBase64(createStoreDto.getImageBase64());
+            String fileName = "store_" + System.currentTimeMillis() + "." + extension;
+
+            // Сохраняем файл (здесь ваша логика сохранения)
+            String imageUrl = saveImageToStorage(imageBytes, fileName);
+
+            log.info("✅ Base64 image uploaded successfully: {}", imageUrl);
+            return new ImageUploadResult(fileName, imageUrl);
+
+        } catch (Exception e) {
+            log.error("❌ Failed to process Base64 image", e);
+            // Возвращаем дефолтное изображение при ошибке
+            return new ImageUploadResult(null, "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
+        }
+    }
+    /**
+     * Определяет расширение файла из Base64 строки
+     */
+    private String getImageExtensionFromBase64(String base64String) {
+        if (base64String.startsWith("data:image/jpeg") || base64String.startsWith("data:image/jpg")) {
+            return "jpg";
+        } else if (base64String.startsWith("data:image/png")) {
+            return "png";
+        } else if (base64String.startsWith("data:image/gif")) {
+            return "gif";
+        } else if (base64String.startsWith("data:image/webp")) {
+            return "webp";
+        }
+        return "jpg"; // По умолчанию
+    }
+    /**
+     * Сохраняет изображение в файловую систему или облачное хранилище
+     */
+    private String saveImageToStorage(byte[] imageBytes, String fileName) {
+        try {
+            // ВРЕМЕННО: сохраняем в локальную папку
+            String uploadDir = System.getProperty("java.io.tmpdir") + "/store-images/";
+            Path uploadPath = Paths.get(uploadDir);
+
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            Path filePath = uploadPath.resolve(fileName);
+            Files.write(filePath, imageBytes);
+
+            // Возвращаем URL (в реальном приложении это может быть CDN URL)
+            String imageUrl = "http://localhost:8083/images/stores/" + fileName;
+
+            log.info("📸 Image saved to: {}", filePath.toString());
+            return imageUrl;
+
+        } catch (Exception e) {
+            log.error("❌ Failed to save image to storage", e);
+            throw new RuntimeException("Failed to save image: " + e.getMessage());
         }
     }
 
