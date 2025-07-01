@@ -256,6 +256,7 @@ public class CategoryRestController {
                     .body(ApiResponse.error("Доступ запрещен"));
         }
 
+
         ApiResponse<CategoryResponseDto> response = categoryService.createCategory(createCategoryDto, userId);
 
         if (response.isSuccess()) {

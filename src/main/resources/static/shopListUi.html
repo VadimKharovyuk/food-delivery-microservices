@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Магазины</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 300;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .loading {
+      text-align: center;
+      color: white;
+      font-size: 1.2rem;
+      margin: 50px 0;
+    }
+
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .stores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 25px;
+      margin-top: 30px;
+    }
+
+    .store-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .store-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.15);
+    }
+
+    .store-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+    }
+
+    .store-image.placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 14px;
+      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+    }
+
+    .store-name {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .store-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+    }
+
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #ff6b35;
+      font-weight: 500;
+    }
+
+    .rating::before {
+      content: "⭐";
+    }
+
+    .delivery-time {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #28a745;
+      font-weight: 500;
+    }
+
+    .delivery-time::before {
+      content: "🚚";
+    }
+
+    .error {
+      text-align: center;
+      color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      border: 1px solid rgba(255, 107, 107, 0.2);
+    }
+
+    .stats {
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+    }
+
+    .refresh-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .refresh-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .no-stores {
+      text-align: center;
+      color: white;
+      font-size: 1.2rem;
+      margin: 50px 0;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+      .stores-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+
+      .store-info {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Наши магазины</h1>
+    <p>Выберите магазин для заказа</p>
+  </div>
+
+  <div class="stats" id="stats" style="display: none;">
+    <span id="storeCount">0</span> магазинов доступно
+    <button class="refresh-btn" onclick="loadStores()">Обновить</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    Загружаем магазины...
+  </div>
+
+  <div class="error" id="error" style="display: none;">
+    <h3>Ошибка загрузки</h3>
+    <p id="errorMessage"></p>
+    <button class="refresh-btn" onclick="loadStores()" style="margin-top: 10px;">Попробовать снова</button>
+  </div>
+
+  <div class="no-stores" id="noStores" style="display: none;">
+    <h3>Магазины не найдены</h3>
+    <p>В данный момент нет доступных магазинов</p>
+  </div>
+
+  <div class="stores-grid" id="storesGrid"></div>
+</div>
+
+<script>
+  // Загрузка магазинов при загрузке страницы
+  document.addEventListener('DOMContentLoaded', loadStores);
+
+  async function loadStores() {
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const stats = document.getElementById('stats');
+    const storesGrid = document.getElementById('storesGrid');
+    const noStores = document.getElementById('noStores');
+
+    // Показать загрузку
+    loading.style.display = 'block';
+    error.style.display = 'none';
+    stats.style.display = 'none';
+    noStores.style.display = 'none';
+    storesGrid.innerHTML = '';
+
+    try {
+      const response = await fetch('/api/stores/ui');
+      const data = await response.json();
+
+      loading.style.display = 'none';
+
+      if (data.success) {
+        if (data.stores && data.stores.length > 0) {
+          displayStores(data.stores);
+          updateStats(data.totalCount);
+        } else {
+          noStores.style.display = 'block';
+        }
+      } else {
+        showError(data.message || 'Неизвестная ошибка');
+      }
+    } catch (err) {
+      loading.style.display = 'none';
+      showError('Ошибка подключения: ' + err.message);
+      console.error('Error loading stores:', err);
+    }
+  }
+
+  function displayStores(stores) {
+    const storesGrid = document.getElementById('storesGrid');
+    storesGrid.innerHTML = '';
+
+    stores.forEach(store => {
+      const storeCard = createStoreCard(store);
+      storesGrid.appendChild(storeCard);
+    });
+  }
+
+  function createStoreCard(store) {
+    const card = document.createElement('div');
+    card.className = 'store-card';
+    card.onclick = () => selectStore(store);
+
+    const imageElement = store.picUrl ?
+            `<img src="${store.picUrl}" alt="${store.name}" class="store-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="store-image placeholder" style="display: none;">Изображение недоступно</div>` :
+            `<div class="store-image placeholder">Изображение недоступно</div>`;
+
+    card.innerHTML = `
+                ${imageElement}
+                <div class="store-name">${store.name}</div>
+                <div class="store-info">
+                    <div class="rating">${store.rating || 'Н/Д'}</div>
+                    <div class="delivery-time">${store.estimatedDeliveryTime || 'Н/Д'} мин</div>
+                </div>
+            `;
+
+    return card;
+  }
+
+  function updateStats(count) {
+    const stats = document.getElementById('stats');
+    const storeCount = document.getElementById('storeCount');
+
+    storeCount.textContent = count;
+    stats.style.display = 'block';
+  }
+
+  function showError(message) {
+    const error = document.getElementById('error');
+    const errorMessage = document.getElementById('errorMessage');
+
+    errorMessage.textContent = message;
+    error.style.display = 'block';
+  }
+
+  function selectStore(store) {
+    alert(`Выбран магазин: ${store.name}\nРейтинг: ${store.rating || 'Н/Д'}\nВремя доставки: ${store.estimatedDeliveryTime || 'Н/Д'} мин`);
+    // Здесь можно добавить логику выбора магазина
+    console.log('Selected store:', store);
+  }
+</script>
+</body>
+</html>
