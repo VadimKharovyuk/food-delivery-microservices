@@ -30,24 +30,24 @@ public class StoreController {
 
     private final StoreService storeService;
 
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<StoreResponseDto>> createStore(
             @RequestPart("store") CreateStoreDto createStoreRequest,
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestPart("imageFile") MultipartFile imageFile) {
+            @RequestPart("imageFile") MultipartFile imageFile,
+            @RequestHeader("X-User-Id") Long userId) {
 
         log.info("📸 Creating store with image: {}", createStoreRequest.getName());
         log.info("📋 Image file: {} ({} bytes)",
                 imageFile.getOriginalFilename(),
                 imageFile.getSize());
+        log.info("👤 User ID: {}", userId);
 
         try {
             // Устанавливаем файл в объект запроса
             createStoreRequest.setImageFile(imageFile);
 
-            // Ваша логика создания магазина...
-            StoreResponseDto storeResponse = storeService.createStore(createStoreRequest,userId);
+            // Логика создания магазина
+            StoreResponseDto storeResponse = storeService.createStore(createStoreRequest, userId);
 
             return ResponseEntity.ok(ApiResponse.success(storeResponse));
 
@@ -57,6 +57,33 @@ public class StoreController {
                     .body(ApiResponse.error("Ошибка создания магазина: " + e.getMessage()));
         }
     }
+
+//    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ResponseEntity<ApiResponse<StoreResponseDto>> createStore(
+//            @RequestPart("store") CreateStoreDto createStoreRequest,
+//            @RequestHeader("X-User-Id") Long userId,
+//            @RequestPart("imageFile") MultipartFile imageFile) {
+//
+//        log.info("📸 Creating store with image: {}", createStoreRequest.getName());
+//        log.info("📋 Image file: {} ({} bytes)",
+//                imageFile.getOriginalFilename(),
+//                imageFile.getSize());
+//
+//        try {
+//            // Устанавливаем файл в объект запроса
+//            createStoreRequest.setImageFile(imageFile);
+//
+//            // Ваша логика создания магазина...
+//            StoreResponseDto storeResponse = storeService.createStore(createStoreRequest,userId);
+//
+//            return ResponseEntity.ok(ApiResponse.success(storeResponse));
+//
+//        } catch (Exception e) {
+//            log.error("💥 Error creating store", e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(ApiResponse.error("Ошибка создания магазина: " + e.getMessage()));
+//        }
+//    }
 
 
 
