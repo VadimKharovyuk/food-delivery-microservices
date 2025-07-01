@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -39,30 +40,35 @@ public class StoreServiceImpl implements StoreService {
     private final StoreMapper storeMapper;
     private final StorageService storageService;
     private final GeocodingService geocodingService;
-    private static final int UI_STORE_LIMIT = 6;
+    private static final int UI_STORE_LIMIT = 9;
+
 
 
     @Override
     public StoreResponseDto createStore(CreateStoreDto createStoreDto, Long ownerId) {
-        log.info("Creating new store: {} by user: {}", createStoreDto.getName(), ownerId);
 
         try {
-            // 1. 🌍 Создаем адрес с координатами через геокодирование
+            // 1. 🌍 Создаем адрес с координатами
             Address storeAddress = createStoreAddress(createStoreDto);
             log.info("📍 Address created with coordinates: [{}, {}]",
                     storeAddress.getLatitude(), storeAddress.getLongitude());
 
-            // 2. 📸 Обрабатываем изображение (multipart или Base64)
-            ImageUploadResult imageResult;
-            if (createStoreDto.getImageFile() != null && !createStoreDto.getImageFile().isEmpty()) {
-                // Multipart файл
-                imageResult = handleImageUpload(createStoreDto.getImageFile(), "stores");
-            } else if (createStoreDto.getImageBase64() != null && !createStoreDto.getImageBase64().trim().isEmpty()) {
-                // Base64 строка
-                imageResult = handleBase64ImageUpload(createStoreDto);
+            // 2. 📸 Обрабатываем изображение через StorageService
+            StorageService.StorageResult imageResult = null;
+            MultipartFile imageFile = createStoreDto.getImageFile();
+
+            if (imageFile != null && !imageFile.isEmpty()) {
+                try {
+                    imageResult = storageService.uploadImage(imageFile);
+                    log.info("✅ Image uploaded successfully: {}", imageResult.getUrl());
+                } catch (IOException e) {
+                    log.error("❌ Failed to upload image: {}", e.getMessage());
+                    throw new RuntimeException("Ошибка загрузки изображения: " + e.getMessage(), e);
+                }
             } else {
-                // Нет изображения
-                imageResult = new ImageUploadResult(null, "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
+                log.warn("⚠️ No image file provided for store");
+                // Можно либо выбросить исключение, либо создать магазин без изображения
+                // throw new IllegalArgumentException("Изображение магазина обязательно");
             }
 
             // 3. 🏪 Создаем сущность Store
@@ -74,98 +80,78 @@ public class StoreServiceImpl implements StoreService {
             log.info("✅ Store created successfully with ID: {} by owner: {}",
                     savedStore.getId(), ownerId);
 
-            // 5. 📊 Логируем статистику создания
+            // 5. 📊 Логируем статистику
             logStoreCreationStats(savedStore);
 
             // 6. 📤 Возвращаем DTO ответ
             return storeMapper.mapToResponseDto(savedStore);
 
+        } catch (RuntimeException e) {
+            // Перебрасываем RuntimeException как есть
+            throw e;
         } catch (Exception e) {
             log.error("❌ Error creating store for owner {}: {}", ownerId, e.getMessage(), e);
             throw new RuntimeException("Failed to create store: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * ✅ Вспомогательный метод для создания сущности Store
+     */
+    private Store buildStoreEntity(CreateStoreDto createStoreDto, Long ownerId,
+                                   Address storeAddress, StorageService.StorageResult imageResult) {
+
+        Store store = new Store();
+
+        // Основная информация
+        store.setName(createStoreDto.getName());
+        store.setDescription(createStoreDto.getDescription());
+        store.setOwnerId(ownerId);
+        store.setAddress(storeAddress);
+
+        // Контактная информация
+        store.setPhone(createStoreDto.getPhone());
+        store.setEmail(createStoreDto.getEmail());
+
+        // Настройки доставки
+        store.setDeliveryRadius(createStoreDto.getDeliveryRadius());
+        store.setDeliveryFee(createStoreDto.getDeliveryFee());
+        store.setEstimatedDeliveryTime(createStoreDto.getEstimatedDeliveryTime());
+
+        // Изображение (если загружено)
+        if (imageResult != null) {
+            store.setPicUrl(imageResult.getUrl());
+            store.setPicId(imageResult.getImageId());
+        }
+
+        // Статус и временные метки
+        store.setIsActive(createStoreDto.getIsActive() != null ? createStoreDto.getIsActive() : true);
+        store.setCreatedAt(LocalDateTime.now());
+        store.setUpdatedAt(LocalDateTime.now());
+
+        return store;
+    }
+
 
     /**
-     * Обработка Base64 изображения из JSON
+     * ✅ ДОБАВЛЕНО: Статистика создания магазина
      */
-    private ImageUploadResult handleBase64ImageUpload(CreateStoreDto createStoreDto) {
-        if (createStoreDto.getImageBase64() == null || createStoreDto.getImageBase64().trim().isEmpty()) {
-            log.info("📸 No Base64 image provided, using default");
-            return new ImageUploadResult(null, "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
-        }
-
-        try {
-            log.info("📸 Processing Base64 image: {}", createStoreDto.getImageName());
-
-            // Извлекаем данные из Base64 (убираем data:image/jpeg;base64, префикс)
-            String base64Data = createStoreDto.getImageBase64();
-            if (base64Data.contains(",")) {
-                base64Data = base64Data.split(",")[1];
-            }
-
-            // Декодируем Base64
-            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
-
-            // Определяем расширение файла
-            String extension = getImageExtensionFromBase64(createStoreDto.getImageBase64());
-            String fileName = "store_" + System.currentTimeMillis() + "." + extension;
-
-            // Сохраняем файл (здесь ваша логика сохранения)
-            String imageUrl = saveImageToStorage(imageBytes, fileName);
-
-            log.info("✅ Base64 image uploaded successfully: {}", imageUrl);
-            return new ImageUploadResult(fileName, imageUrl);
-
-        } catch (Exception e) {
-            log.error("❌ Failed to process Base64 image", e);
-            // Возвращаем дефолтное изображение при ошибке
-            return new ImageUploadResult(null, "https://via.placeholder.com/800x600/f0f0f0/999999?text=Store+Image");
-        }
+    private void logStoreCreationStats(Store savedStore) {
+        log.info("📊 Store creation statistics:");
+        log.info("   🆔 Store ID: {}", savedStore.getId());
+        log.info("   👤 Owner ID: {}", savedStore.getOwnerId());
+        log.info("   🏪 Store name: {}", savedStore.getName());
+        log.info("   📍 Location: {}", savedStore.getAddress().getFormattedAddress());
+        log.info("   🖼️ Has image: {}", savedStore.getPicUrl() != null);
+        log.info("   📞 Contact: phone={}, email={}", savedStore.getPhone(), savedStore.getEmail());
+        log.info("   🚚 Delivery settings: radius={}km, fee=${}, time={}min",
+                savedStore.getDeliveryRadius(), savedStore.getDeliveryFee(), savedStore.getEstimatedDeliveryTime());
+        log.info("   ⚡ Active: {}", savedStore.getIsActive());
+        log.info("   ⏰ Created at: {}", savedStore.getCreatedAt());
+        log.info("   💾 Saved to database successfully");
     }
-    /**
-     * Определяет расширение файла из Base64 строки
-     */
-    private String getImageExtensionFromBase64(String base64String) {
-        if (base64String.startsWith("data:image/jpeg") || base64String.startsWith("data:image/jpg")) {
-            return "jpg";
-        } else if (base64String.startsWith("data:image/png")) {
-            return "png";
-        } else if (base64String.startsWith("data:image/gif")) {
-            return "gif";
-        } else if (base64String.startsWith("data:image/webp")) {
-            return "webp";
-        }
-        return "jpg"; // По умолчанию
-    }
-    /**
-     * Сохраняет изображение в файловую систему или облачное хранилище
-     */
-    private String saveImageToStorage(byte[] imageBytes, String fileName) {
-        try {
-            // ВРЕМЕННО: сохраняем в локальную папку
-            String uploadDir = System.getProperty("java.io.tmpdir") + "/store-images/";
-            Path uploadPath = Paths.get(uploadDir);
 
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
 
-            Path filePath = uploadPath.resolve(fileName);
-            Files.write(filePath, imageBytes);
-
-            // Возвращаем URL (в реальном приложении это может быть CDN URL)
-            String imageUrl = "http://localhost:8083/images/stores/" + fileName;
-
-            log.info("📸 Image saved to: {}", filePath.toString());
-            return imageUrl;
-
-        } catch (Exception e) {
-            log.error("❌ Failed to save image to storage", e);
-            throw new RuntimeException("Failed to save image: " + e.getMessage());
-        }
-    }
 
 ///для админа
     @Override
@@ -341,20 +327,7 @@ public class StoreServiceImpl implements StoreService {
     }
 
 
-    /**
-     * 📊 Логирование статистики создания
-     */
-    private void logStoreCreationStats(Store savedStore) {
-        log.info("📊 Store creation stats:");
-        log.info("   🏪 Store ID: {}", savedStore.getId());
-        log.info("   👤 Owner ID: {}", savedStore.getOwnerId());
-        log.info("   📍 Location: {}", savedStore.getAddress().getFormattedAddress());
-        log.info("   🚚 Delivery: {}km radius, ${} fee, {} min",
-                savedStore.getDeliveryRadius(),
-                savedStore.getDeliveryFee(),
-                savedStore.getEstimatedDeliveryTime());
-        log.info("   🖼️ Image: {}", savedStore.getPicUrl() != null ? "Yes" : "No");
-    }
+
 
     // ================================
     // 📦 ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ

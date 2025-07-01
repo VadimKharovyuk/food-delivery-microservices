@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест Backend - Создание магазина</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+
+    .form-container {
+      padding: 40px;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 20px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #ff6b6b;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .image-upload {
+      border: 2px dashed #ff6b6b;
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      background: #fff8f8;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .image-upload:hover {
+      border-color: #ee5a24;
+      background: #fff0f0;
+    }
+
+    .image-upload.dragover {
+      border-color: #ee5a24;
+      background: #ffe6e6;
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      color: #ff6b6b;
+      margin-bottom: 15px;
+    }
+
+    .upload-text {
+      color: #666;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+
+    .upload-hint {
+      color: #999;
+      font-size: 0.9rem;
+    }
+
+    #imageFile {
+      display: none;
+    }
+
+    .image-preview {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .preview-image {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-bottom: 10px;
+    }
+
+    .remove-image {
+      background: #ff4757;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.3s ease;
+    }
+
+    .remove-image:hover {
+      background: #ff3742;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      transform: scale(1.2);
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #ff6b6b;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .alert.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .test-info {
+      background: #ffe6e6;
+      color: #cc0000;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ffcccc;
+    }
+
+    .endpoint-info {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border-left: 4px solid #ff6b6b;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .container {
+        margin: 10px;
+        border-radius: 15px;
+      }
+
+      .form-container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🚀 Backend Тест</h1>
+    <p>Прямое тестирование серверного контроллера</p>
+  </div>
+
+  <div class="form-container">
+    <div class="test-info">
+      <strong>🧪 Backend Test Mode:</strong> Эта форма напрямую отправляет данные на backend сервер для тестирования загрузки изображений.
+    </div>
+
+    <div class="endpoint-info">
+      <strong>Endpoint:</strong> POST /api/stores<br>
+      <strong>Content-Type:</strong> multipart/form-data<br>
+      <strong>Parts:</strong><br>
+      - store: JSON (CreateStoreDto)<br>
+      - imageFile: MultipartFile<br>
+      <strong>Headers:</strong> X-User-Id: Long
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <form id="storeForm">
+      <!-- Основная информация -->
+      <div class="form-group">
+        <label for="name">Название магазина *</label>
+        <input type="text" id="name" name="name" required maxlength="100" value="Backend Test Store">
+      </div>
+
+      <div class="form-group">
+        <label for="description">Описание</label>
+        <textarea id="description" name="description" maxlength="500" placeholder="Опишите ваш магазин...">Тестовый магазин для проверки backend</textarea>
+      </div>
+
+      <!-- Адрес -->
+      <h3 style="margin: 30px 0 20px 0; color: #333;">📍 Адрес</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="street">Улица *</label>
+          <input type="text" id="street" name="street" required maxlength="200" value="Backend Street 1">
+        </div>
+        <div class="form-group">
+          <label for="city">Город *</label>
+          <input type="text" id="city" name="city" required maxlength="100" value="Backend City">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="region">Регион</label>
+          <input type="text" id="region" name="region" maxlength="100" value="Backend Region">
+        </div>
+        <div class="form-group">
+          <label for="postalCode">Почтовый индекс</label>
+          <input type="text" id="postalCode" name="postalCode" pattern="[0-9]{5,10}" value="12345">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="country">Страна *</label>
+        <input type="text" id="country" name="country" required maxlength="100" value="Test Country">
+      </div>
+
+      <!-- Контакты -->
+      <h3 style="margin: 30px 0 20px 0; color: #333;">📞 Контакты</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="phone">Телефон</label>
+          <input type="tel" id="phone" name="phone" pattern="[+]?[0-9\s\-\(\)]{10,20}" value="+1 (555) 123-4567">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" maxlength="100" value="backend@test.com">
+        </div>
+      </div>
+
+      <!-- Доставка -->
+      <h3 style="margin: 30px 0 20px 0; color: #333;">🚚 Доставка</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="deliveryRadius">Радиус доставки (км) *</label>
+          <input type="number" id="deliveryRadius" name="deliveryRadius" required min="1" max="50" value="10">
+        </div>
+        <div class="form-group">
+          <label for="deliveryFee">Стоимость доставки (₽) *</label>
+          <input type="number" id="deliveryFee" name="deliveryFee" required min="0" max="99999.99" step="0.01" value="150">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="estimatedDeliveryTime">Время доставки (минуты) *</label>
+        <input type="number" id="estimatedDeliveryTime" name="estimatedDeliveryTime" required min="10" max="180" value="30">
+      </div>
+
+      <!-- User ID для тестирования -->
+      <div class="form-group">
+        <label for="userId">User ID (для тестирования) *</label>
+        <input type="number" id="userId" name="userId" required min="1" value="999" style="border: 2px solid #ff6b6b;">
+      </div>
+
+      <!-- Изображение -->
+      <h3 style="margin: 30px 0 20px 0; color: #333;">📸 Изображение магазина *</h3>
+
+      <div class="form-group">
+        <div class="image-upload" id="imageUpload">
+          <div class="upload-icon">📷</div>
+          <div class="upload-text">Нажмите или перетащите изображение</div>
+          <div class="upload-hint">Поддерживаются форматы: JPG, PNG, WEBP (макс. 10MB)</div>
+          <input type="file" id="imageFile" name="imageFile" accept="image/*" required>
+        </div>
+        <div id="imagePreview" class="image-preview"></div>
+      </div>
+
+      <!-- Активность -->
+      <div class="form-group">
+        <div class="checkbox-group">
+          <input type="checkbox" id="isActive" name="isActive" checked>
+          <label for="isActive">Магазин активен</label>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        🚀 Отправить на Backend
+      </button>
+    </form>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Отправка на backend сервер...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Элементы формы
+  const form = document.getElementById('storeForm');
+  const imageUpload = document.getElementById('imageUpload');
+  const imageFile = document.getElementById('imageFile');
+  const imagePreview = document.getElementById('imagePreview');
+  const submitBtn = document.getElementById('submitBtn');
+  const loading = document.getElementById('loading');
+  const alert = document.getElementById('alert');
+
+  // Обработка загрузки изображения
+  imageUpload.addEventListener('click', () => {
+    imageFile.click();
+  });
+
+  imageUpload.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    imageUpload.classList.add('dragover');
+  });
+
+  imageUpload.addEventListener('dragleave', () => {
+    imageUpload.classList.remove('dragover');
+  });
+
+  imageUpload.addEventListener('drop', (e) => {
+    e.preventDefault();
+    imageUpload.classList.remove('dragover');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageFile(files[0]);
+    }
+  });
+
+  imageFile.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handleImageFile(e.target.files[0]);
+    }
+  });
+
+  function handleImageFile(file) {
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      showAlert('Пожалуйста, выберите изображение', 'error');
+      return;
+    }
+
+    // Проверка размера файла (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showAlert('Размер файла не должен превышать 10MB', 'error');
+      return;
+    }
+
+    // Устанавливаем файл в input
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    imageFile.files = dataTransfer.files;
+
+    // Создание превью
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview" class="preview-image">
+                    <br>
+                    <button type="button" class="remove-image" onclick="removeImage()">Удалить</button>
+                `;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage() {
+    imageFile.value = '';
+    imagePreview.innerHTML = '';
+  }
+
+  // Обработка отправки формы
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Проверяем, что выбран файл
+    const imageFileInput = document.getElementById('imageFile');
+    if (!imageFileInput.files || imageFileInput.files.length === 0) {
+      showAlert('Пожалуйста, выберите изображение для тестирования!', 'error');
+      return;
+    }
+
+    // Показать загрузку
+    submitBtn.disabled = true;
+    loading.style.display = 'block';
+    form.style.display = 'none';
+
+    try {
+      // Получаем порт backend сервера (обычно 8083 для product-service)
+      const backendPort = prompt('Введите порт backend сервера (обычно 8083):', '8083');
+      if (!backendPort) {
+        throw new Error('Порт не указан');
+      }
+
+      // Создание FormData для backend (точно как ожидает сервер)
+      const formData = new FormData();
+
+      // Создаем объект CreateStoreDto
+      const storeDto = {
+        name: document.getElementById('name').value || '',
+        description: document.getElementById('description').value || '',
+        street: document.getElementById('street').value || '',
+        city: document.getElementById('city').value || '',
+        region: document.getElementById('region').value || '',
+        postalCode: document.getElementById('postalCode').value || '',
+        country: document.getElementById('country').value || '',
+        phone: document.getElementById('phone').value || '',
+        email: document.getElementById('email').value || '',
+        deliveryRadius: parseInt(document.getElementById('deliveryRadius').value) || 0,
+        deliveryFee: parseFloat(document.getElementById('deliveryFee').value) || 0,
+        estimatedDeliveryTime: parseInt(document.getElementById('estimatedDeliveryTime').value) || 0,
+        isActive: document.getElementById('isActive').checked
+      };
+
+      // Добавляем store как JSON blob
+      formData.append('store', new Blob([JSON.stringify(storeDto)], {
+        type: 'application/json'
+      }));
+
+      // Добавляем imageFile
+      formData.append('imageFile', imageFileInput.files[0]);
+
+      const userId = document.getElementById('userId').value;
+
+      console.log('🚀 Отправляем на backend:');
+      console.log('- URL: http://localhost:' + backendPort + '/api/stores');
+      console.log('- store:', storeDto);
+      console.log('- imageFile:', imageFileInput.files[0].name, imageFileInput.files[0].size, 'bytes');
+      console.log('- X-User-Id:', userId);
+
+      // Отправка НАПРЯМУЮ на backend сервер
+      const response = await fetch(`http://localhost:${backendPort}/api/stores`, {
+        method: 'POST',
+        headers: {
+          'X-User-Id': userId
+          // НЕ ДОБАВЛЯЕМ Content-Type - браузер сам установит с boundary
+        },
+        body: formData
+      });
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', [...response.headers.entries()]);
+
+      let result;
+      const contentType = response.headers.get('content-type');
+
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const textResult = await response.text();
+        console.error('Non-JSON response:', textResult);
+        result = { success: false, message: 'Сервер вернул: ' + textResult.substring(0, 100) };
+      }
+
+      if (response.ok && result.success) {
+        showAlert('🎉 SUCCESS! Магазин создан на backend сервере!', 'success');
+        console.log('✅ Success response:', result);
+      } else {
+        showAlert(`❌ Backend ошибка: ${result.message || 'Unknown error'} (${response.status})`, 'error');
+        console.error('❌ Error response:', result);
+      }
+
+    } catch (error) {
+      console.error('💥 Error:', error);
+      if (error.message.includes('Failed to fetch')) {
+        showAlert('🔌 Не удалось подключиться к backend серверу. Проверьте, что сервер запущен на указанном порту.', 'error');
+      } else {
+        showAlert('💥 Ошибка: ' + error.message, 'error');
+      }
+    } finally {
+      // Скрыть загрузку
+      submitBtn.disabled = false;
+      loading.style.display = 'none';
+      form.style.display = 'block';
+    }
+  });
+
+  function showAlert(message, type) {
+    alert.textContent = message;
+    alert.className = `alert ${type}`;
+    alert.style.display = 'block';
+
+    // Автоматически скрыть через 10 секунд для успеха, 15 для ошибки
+    setTimeout(() => {
+      alert.style.display = 'none';
+    }, type === 'success' ? 10000 : 15000);
+  }
+
+  // Автоматическое скрытие алертов при клике
+  alert.addEventListener('click', () => {
+    alert.style.display = 'none';
+  });
+</script>
+</body>
+</html>

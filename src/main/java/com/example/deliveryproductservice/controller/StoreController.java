@@ -1,6 +1,7 @@
 package com.example.deliveryproductservice.controller;
 import com.example.deliveryproductservice.annotation.CurrentUser;
 import com.example.deliveryproductservice.dto.StoreDto.*;
+import com.example.deliveryproductservice.dto.category.ApiResponse;
 import com.example.deliveryproductservice.service.StoreService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -13,7 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDateTime;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,6 +29,149 @@ import java.util.Map;
 public class StoreController {
 
     private final StoreService storeService;
+
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<StoreResponseDto>> createStore(
+            @RequestPart("store") CreateStoreDto createStoreRequest,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestPart("imageFile") MultipartFile imageFile) {
+
+        log.info("📸 Creating store with image: {}", createStoreRequest.getName());
+        log.info("📋 Image file: {} ({} bytes)",
+                imageFile.getOriginalFilename(),
+                imageFile.getSize());
+
+        try {
+            // Устанавливаем файл в объект запроса
+            createStoreRequest.setImageFile(imageFile);
+
+            // Ваша логика создания магазина...
+            StoreResponseDto storeResponse = storeService.createStore(createStoreRequest,userId);
+
+            return ResponseEntity.ok(ApiResponse.success(storeResponse));
+
+        } catch (Exception e) {
+            log.error("💥 Error creating store", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Ошибка создания магазина: " + e.getMessage()));
+        }
+    }
+
+
+
+    /**
+     * ✅ Валидация основных полей запроса
+     */
+    private void validateStoreRequest(CreateStoreDto createStoreDto) {
+        if (createStoreDto.getName() == null || createStoreDto.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Название магазина обязательно");
+        }
+
+        if (createStoreDto.getStreet() == null || createStoreDto.getStreet().trim().isEmpty()) {
+            throw new IllegalArgumentException("Адрес (улица) обязателен");
+        }
+
+        if (createStoreDto.getCity() == null || createStoreDto.getCity().trim().isEmpty()) {
+            throw new IllegalArgumentException("Город обязателен");
+        }
+
+        if (createStoreDto.getCountry() == null || createStoreDto.getCountry().trim().isEmpty()) {
+            throw new IllegalArgumentException("Страна обязательна");
+        }
+
+        // Проверка изображения (если требуется)
+        MultipartFile imageFile = createStoreDto.getImageFile();
+        if (imageFile == null || imageFile.isEmpty()) {
+            throw new IllegalArgumentException("Изображение магазина обязательно");
+        }
+
+        // Проверка размера файла (5MB)
+        if (imageFile.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("Размер изображения не должен превышать 5MB");
+        }
+
+        // Проверка типа файла
+        String contentType = imageFile.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Файл должен быть изображением");
+        }
+
+        log.debug("✅ Store request validation passed for: {}", createStoreDto.getName());
+    }
+
+
+
+
+    /**
+     * ✅ Детальное логирование входящего запроса
+     */
+    private void logIncomingRequest(HttpServletRequest request, CreateStoreDto createStoreDto) {
+        log.info("🔍 === INCOMING REQUEST DEBUG ===");
+        log.info("🌐 Method: {}", request.getMethod());
+        log.info("🌐 URL: {}", request.getRequestURL());
+        log.info("🌐 Content-Type: {}", request.getContentType());
+        log.info("🌐 Content-Length: {}", request.getContentLength());
+
+        // Логируем заголовки
+        log.info("📋 Headers:");
+        Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            String headerValue = request.getHeader(headerName);
+            if ("authorization".equalsIgnoreCase(headerName)) {
+                log.info("   🔐 {}: Bearer ***", headerName);
+            } else {
+                log.info("   📋 {}: {}", headerName, headerValue);
+            }
+        }
+
+        if (createStoreDto != null) {
+            log.info("🏪 Store Data: name={}, city={}", createStoreDto.getName(), createStoreDto.getCity());
+            if (createStoreDto.getImageFile() != null) {
+                log.info("🖼️ Image: name={}, size={}KB, type={}",
+                        createStoreDto.getImageFile().getOriginalFilename(),
+                        createStoreDto.getImageFile().getSize() / 1024,
+                        createStoreDto.getImageFile().getContentType());
+            } else {
+                log.info("🖼️ Image: none");
+            }
+        }
+
+        log.info("🔍 === END REQUEST DEBUG ===");
+    }
+
+    /**
+     * ✅ Обработчик multipart ошибок
+     */
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<String> handleMultipartException(MultipartException e) {
+        log.error("❌ Multipart exception: {}", e.getMessage(), e);
+        return ResponseEntity.badRequest().body("Multipart error: " + e.getMessage());
+    }
+
+    /**
+     * ✅ Простой DTO для тестирования
+     */
+    @lombok.Data
+    public static class TestDto {
+        private String data;
+    }
+
+
+    @GetMapping("/ui")
+    public ResponseEntity<StoreUIResponseWrapper> getStoresForUI() {
+        log.debug("Getting stores for UI");
+        StoreUIResponseWrapper response = storeService.getActiveStoresForUI();
+
+        log.debug("Response contains {} stores", response.getStores().size());
+        response.getStores().forEach(store ->
+                log.debug("Store: {}, picUrl: {}", store.getName(), store.getPicUrl())
+        );
+        return response.getSuccess() ?
+                ResponseEntity.ok(response) :
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
 
 
     @GetMapping
@@ -64,15 +212,7 @@ public class StoreController {
         }
     }
 
-    @GetMapping("/ui")
-    public ResponseEntity<StoreUIResponseWrapper> getStoresForUI() {
-        log.debug("Getting stores for UI");
-        StoreUIResponseWrapper response = storeService.getActiveStoresForUI();
 
-        return response.getSuccess() ?
-                ResponseEntity.ok(response) :
-                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<SingleStoreResponseWrapper> getStoreById(@PathVariable Long id) {
@@ -126,115 +266,8 @@ public class StoreController {
     }
 
 
-    /**
-     * 🏪 Создать новый магазин через JSON (без файлов)
-     * POST /api/stores/json
-     * Требует: роль ROLE_BUSINESS
-     */
-    @PostMapping(value = "/json", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StoreResponseDto> createStoreJson(
-            @Valid @RequestBody CreateStoreDto createStoreDto,
-            @CurrentUser Long userId,
-            HttpServletRequest request) {
 
-        log.info("🏪 POST /api/stores/json - Creating new store: {} by user: {}", createStoreDto.getName(), userId);
 
-        // Логируем полученные данные
-        log.info("📍 JSON Address: street={}, city={}, region={}, country={}",
-                createStoreDto.getStreet(),
-                createStoreDto.getCity(),
-                createStoreDto.getRegion(),
-                createStoreDto.getCountry());
-
-        // 🔐 Проверяем роль ROLE_BUSINESS
-        ResponseEntity<StoreResponseDto> authCheck = checkBusinessRole(userId, request);
-        if (authCheck != null) {
-            return authCheck;
-        }
-
-        try {
-            StoreResponseDto createdStore = storeService.createStore(createStoreDto, userId);
-
-            log.info("✅ Store created successfully: {} (ID: {})", createdStore.getName(), createdStore.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdStore);
-
-        } catch (RuntimeException e) {
-            return handleStoreCreationError(e);
-        } catch (Exception e) {
-            log.error("❌ Unexpected error creating store", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    /**
-     * 🏪 Создать новый магазин (с изображением)
-     * POST /api/stores
-     * Требует: роль ROLE_BUSINESS
-     */
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<StoreResponseDto> createStore(
-            @Valid @ModelAttribute CreateStoreDto createStoreDto,
-            @CurrentUser Long userId,
-            HttpServletRequest request) {
-
-        log.info("🏪 POST /api/stores - Creating new store: {} by user: {}", createStoreDto.getName(), userId);
-
-        // 🔐 Проверяем роль ROLE_BUSINESS
-        ResponseEntity<StoreResponseDto> authCheck = checkBusinessRole(userId, request);
-        if (authCheck != null) {
-            return authCheck;
-        }
-
-        try {
-            StoreResponseDto createdStore = storeService.createStore(createStoreDto, userId);
-
-            log.info("✅ Store created successfully: {} (ID: {})", createdStore.getName(), createdStore.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdStore);
-
-        } catch (RuntimeException e) {
-            return handleStoreCreationError(e);
-        } catch (Exception e) {
-            log.error("❌ Unexpected error creating store", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    /**
-     * 🏪 Создать новый магазин (JSON версия без изображения)
-     * POST /api/stores/simple
-     * Требует: роль ROLE_BUSINESS
-     */
-    @PostMapping("/simple")
-    public ResponseEntity<StoreResponseDto> createStoreSimple(
-            @Valid @RequestBody CreateStoreDto createStoreDto,
-            @CurrentUser Long userId, // ← Используем @CurrentUser
-            HttpServletRequest request) {
-
-        log.info("🏪 POST /api/stores/simple - Creating new store: {} by user: {}", createStoreDto.getName(), userId);
-
-        // 🔐 Проверяем роль ROLE_BUSINESS
-        ResponseEntity<StoreResponseDto> authCheck = checkBusinessRole(userId, request);
-        if (authCheck != null) {
-            return authCheck;
-        }
-
-        try {
-            StoreResponseDto createdStore = storeService.createStore(createStoreDto, userId);
-
-            log.info("✅ Store created successfully: {} (ID: {})", createdStore.getName(), createdStore.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdStore);
-
-        } catch (RuntimeException e) {
-            return handleStoreCreationError(e);
-        } catch (Exception e) {
-            log.error("❌ Unexpected error creating store", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    // ================================
-    // 🔧 ПРИВАТНЫЕ МЕТОДЫ
-    // ================================
 
     /**
      * 🔐 Проверить роль ROLE_BUSINESS

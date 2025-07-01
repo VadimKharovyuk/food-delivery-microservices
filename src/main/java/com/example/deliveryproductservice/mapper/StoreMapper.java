@@ -41,18 +41,6 @@ public class StoreMapper {
         return dto;
     }
 
-    public StoreUIDto mapToUIDto(Store store) {
-        if (store == null) {
-            return null;
-        }
-
-        return StoreUIDto.builder()
-                .name(store.getName())
-                .picUrl(store.getPicUrl())
-                .rating(store.getRating() != null ? store.getRating() : BigDecimal.valueOf(0.0))
-                .estimatedDeliveryTime(store.getEstimatedDeliveryTime())
-                .build();
-    }
 
     public StoreUIDto mapProjectionToUIDto(StoreUIProjection projection) {
         return StoreUIDto.builder()

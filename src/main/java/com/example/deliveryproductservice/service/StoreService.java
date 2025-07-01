@@ -1,6 +1,8 @@
 package com.example.deliveryproductservice.service;
 
 import com.example.deliveryproductservice.dto.StoreDto.*;
+import org.springframework.web.multipart.MultipartFile;
+
 
 
 public interface StoreService {
