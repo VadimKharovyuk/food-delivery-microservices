@@ -127,9 +127,7 @@ public class FavoriteStoreServiceImpl implements FavoriteStoreService {
         }
     }
 
-    // ================================
-    // ПОЛУЧЕНИЕ ДАННЫХ
-    // ================================
+
 
     @Override
     public FavoriteStoreApiResponse<List<FavoriteStoreResponseDto>> getUserFavorites(Long userId) {

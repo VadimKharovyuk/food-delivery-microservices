@@ -6,6 +6,7 @@ import com.example.deliveryproductservice.dto.FavoriteStore.FavoriteStoreRespons
 import com.example.deliveryproductservice.service.FavoriteStoreService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -90,6 +91,7 @@ public class FavoriteStoreController {
         HttpStatus status = response.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
     }
+
 
     /**
      * Получить все избранные рестораны текущего пользователя
@@ -217,6 +219,7 @@ public class FavoriteStoreController {
     /**
      * DTO для запроса добавления в избранное
      */
+    @Setter
     @Getter
     public static class AddToFavoriteRequest {
         private Long storeId;
@@ -224,6 +227,5 @@ public class FavoriteStoreController {
         public AddToFavoriteRequest() {}
         public AddToFavoriteRequest(Long storeId) { this.storeId = storeId; }
 
-        public void setStoreId(Long storeId) { this.storeId = storeId; }
     }
 }

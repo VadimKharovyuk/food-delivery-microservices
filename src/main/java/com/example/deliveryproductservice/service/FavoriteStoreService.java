@@ -14,12 +14,6 @@ public interface FavoriteStoreService {
 
     FavoriteStoreApiResponse<String> removeFromFavorites(Long userId, Long storeId);
 
-    /**
-     * Переключить статус избранного (добавить/удалить)
-     * @param userId ID пользователя
-     * @param storeId ID ресторана
-     * @return результат операции
-     */
     FavoriteStoreApiResponse<FavoriteStoreResponseDto> toggleFavorite(Long userId, Long storeId);
 
 
