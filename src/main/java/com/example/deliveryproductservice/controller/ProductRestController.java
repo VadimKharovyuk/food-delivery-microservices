@@ -3,6 +3,7 @@ package com.example.deliveryproductservice.controller;
 import com.example.deliveryproductservice.annotation.CurrentUser;
 import com.example.deliveryproductservice.dto.ProductDto.*;
 import com.example.deliveryproductservice.service.ProductService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,7 +23,95 @@ import java.util.List;
 public class ProductRestController {
 
     private final ProductService productService;
+   private final ObjectMapper objectMapper;
 
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<SingleProductResponseWrapper> createProduct(
+            @RequestPart("product") String productJson,  // ИЗМЕНЕНО: принимаем как строку!
+            @RequestPart("image") MultipartFile imageFile,
+            @RequestHeader(value = "X-User-ID", required = false) Long userId) {
+
+        log.info("📥 Received product creation request");
+        log.info("📄 Product JSON: {}", productJson);
+        log.info("🖼️ Image file: {} ({} bytes)",
+                imageFile.getOriginalFilename(), imageFile.getSize());
+        log.info("👤 User ID: {}", userId);
+
+        try {
+            // 🔄 Десериализуем JSON строку в объект CreateProductDto
+            CreateProductDto createProductDto = objectMapper.readValue(productJson, CreateProductDto.class);
+
+            log.info("✅ Successfully parsed product DTO: name='{}', storeId={}, price={}",
+                    createProductDto.getName(), createProductDto.getStoreId(), createProductDto.getPrice());
+
+            // ✅ Валидация распарсенного объекта (опционально)
+            if (createProductDto.getName() == null || createProductDto.getName().trim().isEmpty()) {
+                log.warn("❌ Product name is empty");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(SingleProductResponseWrapper.builder()
+                                .success(false)
+                                .message("Product name is required")
+                                .timestamp(java.time.LocalDateTime.now())
+                                .build());
+            }
+
+            if (createProductDto.getPrice() == null || createProductDto.getPrice().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                log.warn("❌ Invalid product price: {}", createProductDto.getPrice());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(SingleProductResponseWrapper.builder()
+                                .success(false)
+                                .message("Product price must be greater than 0")
+                                .timestamp(java.time.LocalDateTime.now())
+                                .build());
+            }
+
+            // 🚀 Вызываем сервисный слой с распарсенным объектом
+            SingleProductResponseWrapper result = productService.createProduct(createProductDto, imageFile, userId);
+
+            // 📊 Определяем HTTP статус на основе результата
+            HttpStatus status = Boolean.TRUE.equals(result.getSuccess()) ?
+                    HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+
+            log.info("✅ Product creation completed with status: {}, success: {}",
+                    status, result.getSuccess());
+
+            return ResponseEntity.status(status).body(result);
+
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            // 🚫 Ошибка парсинга JSON
+            log.error("❌ Failed to parse product JSON: {}", e.getMessage());
+            log.debug("📄 Invalid JSON content: {}", productJson);
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(SingleProductResponseWrapper.builder()
+                            .success(false)
+                            .message("Invalid product data format: " + e.getMessage())
+                            .timestamp(java.time.LocalDateTime.now())
+                            .build());
+
+        } catch (IllegalArgumentException e) {
+            // 🚫 Ошибка валидации данных
+            log.error("❌ Invalid product data: {}", e.getMessage());
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(SingleProductResponseWrapper.builder()
+                            .success(false)
+                            .message("Invalid product data: " + e.getMessage())
+                            .timestamp(java.time.LocalDateTime.now())
+                            .build());
+
+        } catch (Exception e) {
+            // 🚫 Общая ошибка
+            log.error("💥 Unexpected error during product creation", e);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(SingleProductResponseWrapper.builder()
+                            .success(false)
+                            .message("Internal server error occurred")
+                            .timestamp(java.time.LocalDateTime.now())
+                            .build());
+        }
+    }
 
     @GetMapping
     public ResponseEntity<ProductResponseWrapper> getAllAvailableProducts(
@@ -146,93 +236,93 @@ public class ProductRestController {
      * POST /api/products
      * Требует: роль BUSINESS
      */
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<SingleProductResponseWrapper> createProduct(
-            @Valid @ModelAttribute CreateProductDto createProductDto,
-            @CurrentUser Long userId,
-            HttpServletRequest request) {
-
-        log.info("➕ POST /api/products - Creating new product: {} for store: {}", createProductDto.getName(), createProductDto.getStoreId());
-
-        // Проверяем авторизацию
-        String userEmail = request.getHeader("X-User-Email");
-        String userRole = request.getHeader("X-User-Role");
-
-        log.info("🔐 Create product request from User: ID={}, Email={}, Role={}", userId, userEmail, userRole);
-
-        if (!"ROLE_BUSINESS".equals(userRole)) {
-            log.warn("❌ Access denied for user {} with role {}. Required: ROLE_BUSINESS", userId, userRole);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        try {
-            SingleProductResponseWrapper response = productService.createProduct(createProductDto, userId);
-
-            log.info("✅ Product created successfully: {} (ID: {}) by user {}",
-                    response.getProduct().getName(), response.getProduct().getId(), userId);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (RuntimeException e) {
-            log.error("❌ Business error creating product: {}", e.getMessage());
-
-            SingleProductResponseWrapper errorResponse = SingleProductResponseWrapper.builder()
-                    .product(null)
-                    .success(false)
-                    .message(e.getMessage())
-                    .timestamp(java.time.LocalDateTime.now())
-                    .build();
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-
-        } catch (Exception e) {
-            log.error("❌ Unexpected error creating product: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    /**
-     * Создать новый продукт (JSON версия без изображения)
-     * POST /api/products/simple
-     * Требует: роль BUSINESS
-     */
-    @PostMapping("/simple")
-    public ResponseEntity<SingleProductResponseWrapper> createProductSimple(
-            @Valid @RequestBody CreateProductDto createProductDto,
-            @CurrentUser Long userId,
-            HttpServletRequest request) {
-
-        log.info("🛍️ POST /api/products/simple - Creating new product: {} for store: {}", createProductDto.getName(), createProductDto.getStoreId());
-
-        // Проверяем авторизацию
-        String userRole = request.getHeader("X-User-Role");
-
-        if (!"ROLE_BUSINESS".equals(userRole)) {
-            log.warn("❌ Access denied for user {} with role {}. Required: ROLE_BUSINESS", userId, userRole);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        try {
-            SingleProductResponseWrapper response = productService.createProduct(createProductDto, userId);
-
-            log.info("✅ Product created successfully: {} (ID: {}) by user {}",
-                    response.getProduct().getName(), response.getProduct().getId(), userId);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (Exception e) {
-            log.error("❌ Error creating product: {}", e.getMessage(), e);
-
-            SingleProductResponseWrapper errorResponse = SingleProductResponseWrapper.builder()
-                    .product(null)
-                    .success(false)
-                    .message("Failed to create product: " + e.getMessage())
-                    .timestamp(java.time.LocalDateTime.now())
-                    .build();
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
+//    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ResponseEntity<SingleProductResponseWrapper> createProduct(
+//            @Valid @ModelAttribute CreateProductDto createProductDto,
+//            @CurrentUser Long userId,
+//            HttpServletRequest request) {
+//
+//        log.info("➕ POST /api/products - Creating new product: {} for store: {}", createProductDto.getName(), createProductDto.getStoreId());
+//
+//        // Проверяем авторизацию
+//        String userEmail = request.getHeader("X-User-Email");
+//        String userRole = request.getHeader("X-User-Role");
+//
+//        log.info("🔐 Create product request from User: ID={}, Email={}, Role={}", userId, userEmail, userRole);
+//
+//        if (!"ROLE_BUSINESS".equals(userRole)) {
+//            log.warn("❌ Access denied for user {} with role {}. Required: ROLE_BUSINESS", userId, userRole);
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+//        }
+//
+//        try {
+//            SingleProductResponseWrapper response = productService.createProduct(createProductDto, userId);
+//
+//            log.info("✅ Product created successfully: {} (ID: {}) by user {}",
+//                    response.getProduct().getName(), response.getProduct().getId(), userId);
+//
+//            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+//
+//        } catch (RuntimeException e) {
+//            log.error("❌ Business error creating product: {}", e.getMessage());
+//
+//            SingleProductResponseWrapper errorResponse = SingleProductResponseWrapper.builder()
+//                    .product(null)
+//                    .success(false)
+//                    .message(e.getMessage())
+//                    .timestamp(java.time.LocalDateTime.now())
+//                    .build();
+//
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+//
+//        } catch (Exception e) {
+//            log.error("❌ Unexpected error creating product: {}", e.getMessage(), e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+//        }
+//    }
+//
+//    /**
+//     * Создать новый продукт (JSON версия без изображения)
+//     * POST /api/products/simple
+//     * Требует: роль BUSINESS
+//     */
+//    @PostMapping("/simple")
+//    public ResponseEntity<SingleProductResponseWrapper> createProductSimple(
+//            @Valid @RequestBody CreateProductDto createProductDto,
+//            @CurrentUser Long userId,
+//            HttpServletRequest request) {
+//
+//        log.info("🛍️ POST /api/products/simple - Creating new product: {} for store: {}", createProductDto.getName(), createProductDto.getStoreId());
+//
+//        // Проверяем авторизацию
+//        String userRole = request.getHeader("X-User-Role");
+//
+//        if (!"ROLE_BUSINESS".equals(userRole)) {
+//            log.warn("❌ Access denied for user {} with role {}. Required: ROLE_BUSINESS", userId, userRole);
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+//        }
+//
+//        try {
+//            SingleProductResponseWrapper response = productService.createProduct(createProductDto, userId);
+//
+//            log.info("✅ Product created successfully: {} (ID: {}) by user {}",
+//                    response.getProduct().getName(), response.getProduct().getId(), userId);
+//
+//            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+//
+//        } catch (Exception e) {
+//            log.error("❌ Error creating product: {}", e.getMessage(), e);
+//
+//            SingleProductResponseWrapper errorResponse = SingleProductResponseWrapper.builder()
+//                    .product(null)
+//                    .success(false)
+//                    .message("Failed to create product: " + e.getMessage())
+//                    .timestamp(java.time.LocalDateTime.now())
+//                    .build();
+//
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+//        }
+//    }
 
     /**
      * Обновить существующий продукт
