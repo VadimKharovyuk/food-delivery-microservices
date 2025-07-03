@@ -5,12 +5,16 @@ import com.example.deliveryproductservice.dto.ProductDto.CreateProductDto;
 import com.example.deliveryproductservice.dto.ProductDto.ProductBriefResponseWrapper;
 import com.example.deliveryproductservice.dto.ProductDto.ProductResponseWrapper;
 import com.example.deliveryproductservice.dto.ProductDto.SingleProductResponseWrapper;
-import org.springframework.data.domain.Slice;
+import org.springframework.web.multipart.MultipartFile;
+
 
 public interface ProductService {
 
     // 🛍️ Создание продукта
-    SingleProductResponseWrapper createProduct(CreateProductDto createProductDto, Long userId);
+    SingleProductResponseWrapper createProduct(CreateProductDto createProductDto,
+                                               MultipartFile imageFile,
+                                               Long userId);
+//    SingleProductResponseWrapper createProduct(CreateProductDto createProductDto, Long userId);
 
     // 🔍 Получение одного продукта
     SingleProductResponseWrapper getProductById(Long productId);
@@ -36,4 +40,7 @@ public interface ProductService {
     // 🗑️ Удаление продукта (мягкое удаление)
     void deleteProduct(Long productId, Long userId);
      void hardDeleteProduct(Long productId, Long userId);
+
+
+
 }

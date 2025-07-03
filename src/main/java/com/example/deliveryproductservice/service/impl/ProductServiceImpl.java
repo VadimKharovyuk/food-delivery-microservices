@@ -5,6 +5,7 @@ import com.example.deliveryproductservice.dto.ProductDto.*;
 import com.example.deliveryproductservice.mapper.ProductMapper;
 import com.example.deliveryproductservice.model.Product;
 import com.example.deliveryproductservice.repository.ProductRepository;
+import com.example.deliveryproductservice.service.ImageConverterService;
 import com.example.deliveryproductservice.service.ProductService;
 import com.example.deliveryproductservice.service.StorageService;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,36 +30,160 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final StorageService storageService;
+    private final ImageConverterService imageConverterService;
 
 
-    @Override
-    @Transactional
-    public SingleProductResponseWrapper createProduct(CreateProductDto createProductDto, Long userId) {
-        log.info("Creating new product: {} for store: {} by user: {}",
-                createProductDto.getName(), createProductDto.getStoreId(), userId);
-
+    /**
+     * Создает новый продукт с изображением
+     */
+    public SingleProductResponseWrapper createProduct(CreateProductDto createProductDto,
+                                                      MultipartFile imageFile,
+                                                      Long userId) {
         try {
-            // 1. Создаем сущность Product
-            Product product = productMapper.mapFromCreateDto(createProductDto);
+            // Валидация изображения
+            if (imageFile == null || imageFile.isEmpty()) {
+                return SingleProductResponseWrapper.builder()
+                        .success(false)
+                        .message("Product image is required")
+                        .timestamp(java.time.LocalDateTime.now())
+                        .build();
+            }
 
-            // 2. Обрабатываем изображение
-            handleProductImage(product, createProductDto);
+            // Проверка типа файла
+            if (!isValidImageFile(imageFile)) {
+                return SingleProductResponseWrapper.builder()
+                        .success(false)
+                        .message("Invalid image format. Only JPG, PNG, GIF, WEBP are allowed")
+                        .timestamp(java.time.LocalDateTime.now())
+                        .build();
+            }
 
-            // 3. Сохраняем в базу
+            // Обработка и загрузка изображения
+            StorageService.StorageResult uploadResult = processAndUploadImage(imageFile);
+
+            // Создание продукта
+            Product product = Product.builder()
+                    .storeId(createProductDto.getStoreId())
+                    .categoryId(createProductDto.getCategoryId())
+                    .name(createProductDto.getName())
+                    .description(createProductDto.getDescription())
+                    .price(createProductDto.getPrice())
+                    .discountPrice(createProductDto.getDiscountPrice())
+                    .picUrl(uploadResult.getUrl())
+                    .picId(uploadResult.getImageId())
+                    .isPopular(createProductDto.getIsPopular())
+                    .isAvailable(createProductDto.getIsAvailable())
+                    .rating(BigDecimal.ZERO)
+                    .build();
+
             Product savedProduct = productRepository.save(product);
 
-            log.info("✅ Product created successfully with ID: {} by user: {}",
+            log.info("Product created successfully with ID: {} by user: {}",
                     savedProduct.getId(), userId);
 
-            // 4. Возвращаем DTO
-            ProductResponseDto responseDto = productMapper.mapToResponseDto(savedProduct);
-            return SingleProductResponseWrapper.success(responseDto);
+            return SingleProductResponseWrapper.success(convertToResponseDto(savedProduct));
 
+        } catch (IOException e) {
+            log.error("Error uploading image for product creation", e);
+            return SingleProductResponseWrapper.builder()
+                    .success(false)
+                    .message("Failed to upload product image: " + e.getMessage())
+                    .timestamp(java.time.LocalDateTime.now())
+                    .build();
         } catch (Exception e) {
-            log.error("❌ Error creating product for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to create product: " + e.getMessage(), e);
+            log.error("Error creating product", e);
+            return SingleProductResponseWrapper.builder()
+                    .success(false)
+                    .message("Failed to create product: " + e.getMessage())
+                    .timestamp(java.time.LocalDateTime.now())
+                    .build();
         }
     }
+
+    /**
+     * Обрабатывает и загружает изображение - ИСПРАВЛЕНО
+     */
+    private StorageService.StorageResult processAndUploadImage(MultipartFile imageFile) throws IOException {
+        // ИСПРАВЛЕНО: Обработка изображения через ImageConverterService
+        ImageConverterService.ProcessedImage processedImage =
+                imageConverterService.processProductImage(imageFile);
+
+        // Загрузка обработанного изображения через StorageService
+        return storageService.uploadProcessedImage(processedImage);
+    }
+
+    /**
+     * Альтернативный метод - простая загрузка без обработки
+     */
+    private StorageService.StorageResult uploadImageDirect(MultipartFile imageFile) throws IOException {
+        // Если не нужна обработка изображения, можно использовать прямую загрузку
+        return storageService.uploadImage(imageFile, "products");
+    }
+
+    /**
+     * Конвертирует Product в ProductResponseDto
+     */
+    private ProductResponseDto convertToResponseDto(Product product) {
+        ProductResponseDto dto = new ProductResponseDto();
+        dto.setId(product.getId());
+        dto.setStoreId(product.getStoreId());
+        dto.setCategoryId(product.getCategoryId());
+        dto.setName(product.getName());
+        dto.setDescription(product.getDescription());
+        dto.setPrice(product.getPrice());
+        dto.setDiscountPrice(product.getDiscountPrice());
+        dto.setPicUrl(product.getPicUrl());
+        dto.setIsAvailable(product.getIsAvailable());
+        dto.setRating(product.getRating());
+        dto.setCreatedAt(product.getCreatedAt());
+        dto.setUpdatedAt(product.getUpdatedAt());
+        dto.setIsPopular(product.getIsPopular());
+
+        return dto;
+    }
+
+    /**
+     * Проверяет, является ли файл допустимым изображением
+     */
+    private boolean isValidImageFile(MultipartFile file) {
+        String contentType = file.getContentType();
+        return contentType != null && (
+                contentType.equals("image/jpeg") ||
+                        contentType.equals("image/png") ||
+                        contentType.equals("image/gif") ||
+                        contentType.equals("image/webp")
+        );
+    }
+
+//
+//    @Override
+//    @Transactional
+//    public SingleProductResponseWrapper createProduct(CreateProductDto createProductDto, Long userId) {
+//        log.info("Creating new product: {} for store: {} by user: {}",
+//                createProductDto.getName(), createProductDto.getStoreId(), userId);
+//
+//        try {
+//            // 1. Создаем сущность Product
+//            Product product = productMapper.mapFromCreateDto(createProductDto);
+//
+//            // 2. Обрабатываем изображение
+//            handleProductImage(product, createProductDto);
+//
+//            // 3. Сохраняем в базу
+//            Product savedProduct = productRepository.save(product);
+//
+//            log.info("✅ Product created successfully with ID: {} by user: {}",
+//                    savedProduct.getId(), userId);
+//
+//            // 4. Возвращаем DTO
+//            ProductResponseDto responseDto = productMapper.mapToResponseDto(savedProduct);
+//            return SingleProductResponseWrapper.success(responseDto);
+//
+//        } catch (Exception e) {
+//            log.error("❌ Error creating product for user {}: {}", userId, e.getMessage(), e);
+//            throw new RuntimeException("Failed to create product: " + e.getMessage(), e);
+//        }
+//    }
 
     @Override
     @Transactional(readOnly = true)
@@ -283,4 +410,5 @@ public class ProductServiceImpl implements ProductService {
 
         log.info("✅ Product {} hard deleted successfully by user: {}", productId, userId);
     }
+
 }
