@@ -60,7 +60,7 @@ public class Store {
     @Column(nullable = false)
     private String picUrl;
 
-    @Column(nullable = true, unique = true) // Разрешаем NULL
+    @Column(nullable = true, unique = true)
     private String picId;
 
 

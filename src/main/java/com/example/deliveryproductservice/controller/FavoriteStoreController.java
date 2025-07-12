@@ -21,6 +21,30 @@ public class FavoriteStoreController {
 
     private final FavoriteStoreService favoriteStoreService;
 
+    /**
+     * Получить все избранные рестораны текущего пользователя
+     * GET /api/favorites
+     */
+    @GetMapping
+    public ResponseEntity<FavoriteStoreApiResponse<List<FavoriteStoreResponseDto>>> getMyFavorites(
+            @CurrentUser Long userId) {
+
+        log.info("📋 REST: Получение избранных ресторанов пользователя {} (из JWT)", userId);
+
+        // Проверка авторизации
+        if (userId == null) {
+            log.warn("❌ Пользователь не авторизован");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(FavoriteStoreApiResponse.error("Требуется авторизация"));
+        }
+
+        FavoriteStoreApiResponse<List<FavoriteStoreResponseDto>> response =
+                favoriteStoreService.getUserFavorites(userId);
+
+        HttpStatus status = response.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
+    }
+
     @PostMapping("/stores/{storeId}")
     public ResponseEntity<FavoriteStoreApiResponse<FavoriteStoreResponseDto>> addToFavorites(
             @CurrentUser Long userId,
@@ -93,29 +117,7 @@ public class FavoriteStoreController {
     }
 
 
-    /**
-     * Получить все избранные рестораны текущего пользователя
-     * GET /api/favorites
-     */
-    @GetMapping
-    public ResponseEntity<FavoriteStoreApiResponse<List<FavoriteStoreResponseDto>>> getMyFavorites(
-            @CurrentUser Long userId) {
 
-        log.info("📋 REST: Получение избранных ресторанов пользователя {} (из JWT)", userId);
-
-        // Проверка авторизации
-        if (userId == null) {
-            log.warn("❌ Пользователь не авторизован");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(FavoriteStoreApiResponse.error("Требуется авторизация"));
-        }
-
-        FavoriteStoreApiResponse<List<FavoriteStoreResponseDto>> response =
-                favoriteStoreService.getUserFavorites(userId);
-
-        HttpStatus status = response.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-        return ResponseEntity.status(status).body(response);
-    }
 
     /**
      * Получить только активные избранные рестораны текущего пользователя

@@ -22,6 +22,28 @@ public class CategoryRestController {
 
     private final CategoryService categoryService;
 
+
+    /**
+     * Получить краткую информацию о категории по ID
+     * GET /api/categories/{id}/brief
+     */
+    @GetMapping("/{id}/brief")
+    public ResponseEntity<ApiResponse<CategoryBaseProjection>> getCategoryBrief(@PathVariable Long id) {
+        log.info("📊 GET /api/categories/{}/brief - Getting brief category", id);
+
+        ApiResponse<CategoryBaseProjection> response = categoryService.getCategoryBrief(id);
+
+        if (response.isSuccess()) {
+            log.info("✅ Brief category found: {}", response.getData().getName());
+            return ResponseEntity.ok(response);
+        } else if (response.getData() == null && !response.isSuccess()) {
+            log.warn("❌ Category not found with ID: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     /**
      * Получить все активные категории (полная информация)
      * GET /api/categories
@@ -204,26 +226,7 @@ public class CategoryRestController {
         }
     }
 
-    /**
-     * Получить краткую информацию о категории по ID
-     * GET /api/categories/{id}/brief
-     */
-    @GetMapping("/{id}/brief")
-    public ResponseEntity<ApiResponse<CategoryBaseProjection>> getCategoryBrief(@PathVariable Long id) {
-        log.info("📊 GET /api/categories/{}/brief - Getting brief category", id);
 
-        ApiResponse<CategoryBaseProjection> response = categoryService.getCategoryBrief(id);
-
-        if (response.isSuccess()) {
-            log.info("✅ Brief category found: {}", response.getData().getName());
-            return ResponseEntity.ok(response);
-        } else if (response.getData() == null && !response.isSuccess()) {
-            log.warn("❌ Category not found with ID: {}", id);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
 
 
 // ================================
